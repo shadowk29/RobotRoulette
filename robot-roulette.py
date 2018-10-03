@@ -27,7 +27,7 @@ def reset_bracket():
     bracket['RobbieBot'] = RouletteBot(robbie_roulette)
     bracket['WorstCaseBot'] = RouletteBot(worst_case)
     bracket['SpitballBot'] = RouletteBot(spitballBot)
-    #bracket['AntiGangBot'] = RouletteBot(anti_gangbot)
+    bracket['AntiGangBot'] = RouletteBot(anti_gangbot)
     bracket['GangBot0'] = RouletteBot(gang_bot)
     bracket['GangBot1'] = RouletteBot(gang_bot)
     bracket['GangBot2'] = RouletteBot(gang_bot)
@@ -258,16 +258,16 @@ def anti_gangbot(hp, history, ties, alive, start):
                 return int((fS+1)*7+1)
         else:
             if alive == 2:
-                if hp > opp_hp:
+                if hp > op_hp:
                     return hp - 1
                 return hp
-            if hp > opp_hp + 1:
-                if opp_hp <= 15:
-                    return opp_hp # Can't lose much
+            if hp > op_hp + 1:
+                if op_hp <= 15:
+                    return op_hp # Can't lose much
                 if ties > 0:
                     return hp # Just give up, kamikaze mode
-                return opp_hp + 1
-            return opp_hp
+                return op_hp + 1
+            return op_hp
     else:
         n = round_to_seven(100 // (alive - 1) + 1) #greater than
         if n > 100:
