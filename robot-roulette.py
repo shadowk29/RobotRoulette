@@ -32,7 +32,7 @@ def reset_bracket():
     bracket['GangBot0'] = RouletteBot(gang_bot)
     bracket['GangBot1'] = RouletteBot(gang_bot)
     bracket['GangBot2'] = RouletteBot(gang_bot)
-    #bracket['GuessBot'] = RouletteBot(guess_bot)
+    bracket['GuessBot'] = RouletteBot(guess_bot)
     bracket['CalculatingBot'] = RouletteBot(calculatingBot)
     bracket['TitTatBot'] = RouletteBot(tatbot)
     bracket['SpreaderBot'] = RouletteBot(Spreader)
@@ -69,11 +69,11 @@ def main():
     for key, val in tscore:
         print '{0}:\t{1:.3f}\t{2:.1f}%\t{3:.1f}%\t'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)))
 
-    print '<ol>'
-    print '<b>Name\tScore\tWinRate\tTieRate</b>'
+    print '<pre>'
+    print '|\tBot Name\t|\tScore\t|\tWinRate\t|\tTieRate\t|'
     for key, val in tscore:
-        print '<li><b>{0}:</b>\t{1:.3f}\t{2:.1f}%\t{3:.1f}%</li>'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)))
-    print '</ol>'
+        print '|\t{0}\t|\t{1:.3f}\t|\t{2:.1f}%\t|\t{3:.1f}%\t|'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)))
+    print '</pre>'
 
 def tournament(bracket):
     unused = bracket
@@ -216,7 +216,7 @@ def robbie_roulette(hp, history, ties, alive, start):
          return hp / 2
 
 def worst_case(hp, history, ties, alive, start):
-    return np.minimum(hp - 1, hp - hp /(start + 2 - alive) + ties * 2)
+    return np.minimum(hp - 1, hp - hp /(start - alive + 4) + ties * 2)
 
 def BoundedRandomBot(hp, history, ties, alive, start):
     return np.ceil(max(np.random.randint(min(hp/3, 0.8*(100-sum(history))), 0.8*(100-sum(history))), hp-1, 1))
@@ -325,14 +325,14 @@ def gang_bot(hp,history,ties,alive,start):
             return answer
 
 def guess_bot(hp, history, ties, alive, start):
-   if history == 1:
+   if len(history) == 1:
        if history[0] == 99:
            return 2
        if hp > ((history[0]/2) + 1):
            return ((history[0]/2) + 1)
        else:
            return ((hp/2) +2 )
-   elif history > 1:
+   elif len(history) > 1:
        next_bet_guess = sum(history)//(len(history)**2)
        if alive == 2: 
            return hp - 1
