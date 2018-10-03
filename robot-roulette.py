@@ -1,6 +1,7 @@
 import numpy as np
 import random
 from collections import OrderedDict
+import inspect
 __version__='0.1'
 
 class RouletteBot:
@@ -38,13 +39,17 @@ def reset_bracket():
     bracket['SpreaderBot'] = RouletteBot(Spreader)
     bracket['KickBot'] = RouletteBot(kick)
     bracket['BinaryBot'] = RouletteBot(binaryBot)
+    bracket['SarcomaBot'] = RouletteBot(sarcomaBot)
     bracket['SarcomaBotMk2'] = RouletteBot(sarcomaBotMkTwo)
+    bracket['SarcomaBotMk3'] = RouletteBot(sarcomaBotMkThree)
     bracket['TENaciousBot'] = RouletteBot(TENacious_bot)
     bracket['SurvivalistBot'] = RouletteBot(SurvivalistBot)
     bracket['HalvsiestBot'] = RouletteBot(HalvsiesBot)
     bracket['GeometricBot'] = RouletteBot(geometric)
     bracket['BoxBot'] = RouletteBot(BoxBot)
     bracket['UpYoursBot'] = RouletteBot(UpYoursBot)
+    bracket['AggroCalcBot'] = RouletteBot(aggresiveCalculatingBot)
+    bracket['DeterministicBot'] = RouletteBot(deterministicBot)
     return bracket
 
 def tournament_score(score):
@@ -56,7 +61,7 @@ def tournament_score(score):
 def main():
     bracket = reset_bracket()
     score = {key: [0,0] for key in list(bracket.keys())}
-    N = 100000
+    N = 10000
     for n in range(N):
         winner, tied = tournament(bracket)
         if not tied:
@@ -179,19 +184,59 @@ def outbid(hp, history, ties, alive, start):
 
 def pathetic_attempt_at_analytics_bot(hp, history, ties, alive, start):
     '''Not a good bot'''
+
+    if hp == 100 and alive == 2:
+        return hp - 1
+
+
+    #This part is taken from Survivalist Bot, thanks @SSight3!
+    remaining = alive - 2
+    btf = 0
+
+    rt = remaining
+    while rt > 1:
+        rt = float(rt / 2)
+        btf += 1
+
+    if ties > 2:
+        return hp - 1
+
     if history:
         opp_hp = 100 - sum(history)
+
+        #This part is taken from Geometric Bot, thanks @Mnemonic!
+
+        fractions = []
+        health = 100
+        for x in history:
+            fractions.append(float(x) / health)
+            health -= x
+
+        #Modified part
+
+        if len(fractions) > 1:
+            i = 0
+            ct = True
+            while i < len(fractions)-1:
+                if abs((fractions[i] * 100) - (fractions[i + 1] * 100)) < 1:
+                    ct = False
+                i += 1
+
+            if ct:
+                expected = fractions[i] * opp_hp
+                return expected
+
         if alive == 2:
             if hp > opp_hp:
                 return hp - 1
             return hp
         if hp > opp_hp + 1:
             if opp_hp <= 15:
-                return opp_hp +1
-            if ties > 0:
-                return hp #Just give up, kamikaze mode
-            return opp_hp + 1
-        return opp_hp
+                return opp_hp + 1
+            if ties == 2:
+                return opp_hp + 1
+            else:
+                return opp_hp
     else:
         n = 300 // (alive - 1) + 1 #greater than
         if n >= hp:
@@ -422,14 +467,19 @@ def sarcomaBot(hp, history, ties, alive, start):
 
 
 def sarcomaBotMkTwo(hp, history, ties, alive, start):
+    if inspect.stack()[1][3] != 'guess':
+        return hp
     if alive == 2:
         return hp - 1
     if not history:
-        return int(hp / 2 + np.random.randint(0, hp / 8  or 1))
+        startBid = hp / 2
+        maxAdditionalBid = np.round(hp * 0.125) if hp * 0.125 > 2 else 2
+        additionalBid = np.random.randint(1, maxAdditionalBid)
+        return int(startBid + additionalBid + ties)
     opponentHealth = 100 - sum(history)
     if opponentHealth < hp:
-        return opponentHealth + 1
-    minimum = np.round(hp * 0.60)
+        return opponentHealth + ties
+    minimum = np.round(hp * 0.6)
     maximum = hp - 1 or 1
     return np.random.randint(minimum, maximum) if minimum < maximum else 1
 
@@ -650,6 +700,85 @@ def UpYoursBot(hp, history, ties, alive, start):
         # Peculate KamikazeBot
         return kamikaze(*args) + 1
 
-    
+def deterministicBot(hp, history, ties, alive, start):
+    if alive == 2:
+        return (hp - 1 + ties)
+    if hp == 100:
+        return 52
+    if hp == 48:
+        return 26
+    if hp == 22:
+        return 13
+    if hp == 9:
+        return 6
+    if hp == 3:
+        return 2
+    else:
+        return hp
+
+
+def aggresiveCalculatingBot(hp, history, ties, alive, start):
+    opponentsHP = 100 - sum(history)
+    if opponentsHP == 100: # Get past the first round
+        return int(min(51+ties, hp-1+ties))
+    if alive == 2: # 1v1
+        return hp - 1 + ties
+    # Try to fit an exponential trendline and one up the trendline if it fits
+    if len(history) >= 3: 
+        xValues = range(1, len(history) + 1)
+        # https://stackoverflow.com/a/3433503  Assume an exponential trendline
+        coefficients = np.polyfit(xValues, np.log(history), 1, w = np.sqrt(history))
+        def model(coefficients, x):
+            return np.exp(coefficients[1]) * np.exp(coefficients[0] * x)
+        yPredicted = [model(coefficients, x) for x in xValues]
+        totalError = 0
+        for i in range(len(history)):
+            totalError += abs(yPredicted[i] - history[i])
+        if totalError <= (len(history)): # we found a good fitting trendline
+            # get the next predicted value and add 1
+            theoreticalBet = np.ceil(model(coefficients, xValues[-1] + 1) + 1) 
+            theoreticalBet += ties
+            return int(min(theoreticalBet, hp - 1)) # no point suiciding
+    maxRoundsLeft = np.ceil(np.log2(alive))
+    theoreticalBet = hp / float(maxRoundsLeft)
+    additionalRandomness = round(np.random.random()*maxRoundsLeft*2) 
+    # want to save something for the future
+    actualBet = min(theoreticalBet + additionalRandomness + ties, hp - 2)
+    return int(actualBet)
+
+def sarcomaBot(hp, history, ties, alive, start):
+    if inspect.stack()[1][3] != 'guess':
+        return hp
+    if alive == 2:
+        return hp - 1
+    if not history:
+        startBid = hp / 2
+        maxAdditionalBid = np.round(hp * 0.25) if hp * 0.25 > 2 else 2
+        additionalBid = np.random.randint(1, maxAdditionalBid)
+        return int(startBid + additionalBid + ties)
+    opponentHealth = 100 - sum(history)
+    if opponentHealth < hp:
+        return opponentHealth + ties
+    minimum = np.round(hp * 0.75)
+    maximum = hp - 1 or 1
+    return np.random.randint(minimum, maximum) if minimum < maximum else 1
+
+def sarcomaBotMkThree(hp, history, ties, alive, start):
+    if inspect.stack()[1][3] != 'guess':
+        return hp
+    if alive == 2:
+        return hp - 1
+    if not history:
+        startBid = hp / 2
+        maxAdditionalBid = np.round(hp * 0.08) if hp * 0.08 > 2 else 2
+        additionalBid = np.random.randint(1, maxAdditionalBid)
+        return int(startBid + additionalBid + ties)
+    opponentHealth = 100 - sum(history)
+    if opponentHealth < hp:
+        return opponentHealth + ties
+    minimum = np.round(hp * 0.6)
+    maximum = hp - 1 or 1
+    return np.random.randint(minimum, maximum) if minimum < maximum else 1
+
 if __name__=='__main__':
     main()
