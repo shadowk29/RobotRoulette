@@ -33,7 +33,7 @@ def reset_bracket():
     bracket['GangBot2'] = RouletteBot(gang_bot)
     #bracket['GuessBot'] = RouletteBot(guess_bot)
     #bracket['CalculatingBot'] = RouletteBot(calculatingBot)
-    bracket['TatBot'] = RouletteBot(tatbot)
+    bracket['TitTatBot'] = RouletteBot(tatbot)
     bracket['SpreaderBot'] = RouletteBot(Spreader)
     bracket['KickBot'] = RouletteBot(kick)
     bracket['BinaryBot'] = RouletteBot(binaryBot)
@@ -46,12 +46,11 @@ def tournament_score(score):
     for key in score.keys():
         tscore[key] = score[key][0] + 0.5*score[key][1]
     return sorted(tscore.items(), key=lambda x:x[1], reverse=True)
-    
-    
+       
 def main():
     bracket = reset_bracket()
     score = {key: [0,0] for key in list(bracket.keys())}
-    N = 10000
+    N = 100000
     for n in range(N):
         winner, tied = tournament(bracket)
         if not tied:
@@ -61,8 +60,15 @@ def main():
             score[winner[1]][1] += 1
         bracket = reset_bracket()
     tscore = tournament_score(score)
+    print 'Name\t\tScore\tWinRate\tTieRate'
     for key, val in tscore:
-        print key, val/float(N)
+        print '{0}:\t{1:.3f}\t{2:.1f}%\t{3:.1f}%\t'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)))
+
+    print '<ol>'
+    print '<b>Name\tScore\tWinRate\tTieRate</b>'
+    for key, val in tscore:
+        print '<li><b>{0}:</b>\t{1:.3f}\t{2:.1f}%\t{3:.1f}%</li>'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)))
+    print '</ol>'
 
 def tournament(bracket):
     unused = bracket
