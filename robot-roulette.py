@@ -38,7 +38,7 @@ def reset_bracket():
     bracket['SpreaderBot'] = RouletteBot(Spreader)
     bracket['KickBot'] = RouletteBot(kick)
     bracket['BinaryBot'] = RouletteBot(binaryBot)
-    #bracket['SarcomaBot'] = RouletteBot(sarcomaBot)
+    bracket['SarcomaBot'] = RouletteBot(sarcomaBot)
     bracket['TENaciousBot'] = RouletteBot(TENacious_bot)
     bracket['SurvivalistBot'] = RouletteBot(SurvivalistBot)
     return bracket
@@ -400,7 +400,7 @@ def kick(hp, history, ties, alive, start):
         return opp_hp + ties
     else:
         return min(round(opp_hp/2) + 1 + ties**2, hp-1 + (ties>0))
-
+    
 def binaryBot(hp, history, ties, alive, start):
     return int(np.floor(hp/2)) or 1
 
@@ -412,7 +412,7 @@ def sarcomaBot(hp, history, ties, alive, start):
     opponentHealth = 100 - sum(history)
     if opponentHealth < hp:
         return opponentHealth + 1
-    return np.random.randint(hp/1.25, hp-1) or 1
+    return np.random.randint(hp/1.25, hp-1) if hp/1.25 < hp-1 else 1
 
 
 def TENacious_bot(hp, history, ties, alive, start):
