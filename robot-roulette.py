@@ -61,8 +61,10 @@ def tournament_score(score):
 def main():
     bracket = reset_bracket()
     score = {key: [0,0] for key in list(bracket.keys())}
-    N = 10000
+    N = 100000
     for n in range(N):
+        if n%100 == 0:
+            print n
         winner, tied = tournament(bracket)
         if not tied:
             score[winner][0] += 1
@@ -71,7 +73,7 @@ def main():
             score[winner[1]][1] += 1
         bracket = reset_bracket()
     tscore = tournament_score(score)
-    print 'Name\t\tScore\tWinRate\tTieRate'
+    print 'Name\tScore\tWinRate\tTieRate'
     for key, val in tscore:
         print '{0}:\t{1:.3f}\t{2:.1f}%\t{3:.1f}%\t'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)))
 
