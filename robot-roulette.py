@@ -29,20 +29,21 @@ def reset_bracket():
     bracket['WorstCaseBot'] = RouletteBot(worst_case)
     bracket['SpitballBot'] = RouletteBot(spitballBot)
     bracket['AntiGangBot'] = RouletteBot(anti_gangbot)
-    #bracket['GangBot0'] = RouletteBot(gang_bot)
-    #bracket['GangBot1'] = RouletteBot(gang_bot)
-    #bracket['GangBot2'] = RouletteBot(gang_bot)
+    bracket['GangBot0'] = RouletteBot(gang_bot)
+    bracket['GangBot1'] = RouletteBot(gang_bot)
+    bracket['GangBot2'] = RouletteBot(gang_bot)
     #bracket['GuessBot'] = RouletteBot(guess_bot)
-    #bracket['CalculatingBot'] = RouletteBot(calculatingBot)
+    bracket['CalculatingBot'] = RouletteBot(calculatingBot)
     bracket['TitTatBot'] = RouletteBot(tatbot)
     bracket['SpreaderBot'] = RouletteBot(Spreader)
     bracket['KickBot'] = RouletteBot(kick)
     bracket['BinaryBot'] = RouletteBot(binaryBot)
-    bracket['SarcomaBot'] = RouletteBot(sarcomaBotMkTwo)
+    bracket['SarcomaBotMk2'] = RouletteBot(sarcomaBotMkTwo)
     bracket['TENaciousBot'] = RouletteBot(TENacious_bot)
     bracket['SurvivalistBot'] = RouletteBot(SurvivalistBot)
     bracket['HalvsiestBot'] = RouletteBot(HalvsiesBot)
     bracket['GeometricBot'] = RouletteBot(geometric)
+    bracket['BoxBot'] = RouletteBot(BoxBot)
     return bracket
 
 def tournament_score(score):
@@ -294,9 +295,9 @@ def gang_bot(hp,history,ties,alive,start):
                     gang = True
     if gang and hp<100:#Both bots need to have a history for a handshake
             if hp > 100-sum(history):
-                    return np.random.randint(0,hp/5)
+                    return np.random.randint(0,hp/5 or 1)
             elif hp == 100-sum(history):
-                    return np.random.randint(0,hp/10)
+                    return np.random.randint(0,hp/10 or 1)
             else:
                     return 1
     elif gang:
@@ -368,8 +369,7 @@ def calculatingBot(hp, history, ties, alive, start):
             # get the next predicted value and add 1
             theoreticalBet = np.ceil(model(coefficients, xValues[-1] + 1) + 1) 
             theoreticalBet += ties
-            theoreticalBet = max(opponentsHP, theoreticalBet)
-            return np.max(theoreticalBet, hp - 1) # no point suiciding
+            return max(theoreticalBet, hp - 1) # no point suiciding
     maxRoundsLeft = np.ceil(np.log2(alive))
     theoreticalBet = hp / float(maxRoundsLeft)
     additionalRandomness = round(np.random.random()*maxRoundsLeft) 
@@ -405,6 +405,20 @@ def kick(hp, history, ties, alive, start):
     
 def binaryBot(hp, history, ties, alive, start):
     return int(np.floor(hp/2)) or 1
+
+def sarcomaBot(hp, history, ties, alive, start):
+    if alive == 2:
+        return hp - 1
+    if not history:
+        return int(hp / 2 + np.random.randint(0, hp / 4 or 1))
+    opponentHealth = 100 - sum(history)
+    if opponentHealth < hp:
+        return opponentHealth + 1
+    minimum = np.round(hp * 0.75)
+    maximum = hp - 1 or 1
+    return np.random.randint(minimum, maximum) if minimum < maximum else 1
+
+
 
 def sarcomaBotMkTwo(hp, history, ties, alive, start):
     if alive == 2:
@@ -598,6 +612,16 @@ def geometric(hp, history, ties, alive, start):
     expected = int(avg * opponentHP)
     return min(expected + 2, hp - 1)
 
+def BoxBot(hp, history, ties, alive, start):
 
+    Opponent_HP = np.round(100 - sum(history))
+    HalfLife = np.round(Opponent_HP/2)
+    RandomOutbid = HalfLife + 1 + np.random.randint(0,HalfLife or 1)
+
+    if hp < RandomOutbid:
+        return hp - 1
+    else:
+        return RandomOutbid
+    
 if __name__=='__main__':
     main()
