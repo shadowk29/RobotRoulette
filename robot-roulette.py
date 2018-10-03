@@ -1,4 +1,5 @@
 import numpy as np
+import random
 from collections import OrderedDict
 __version__='0.1'
 
@@ -18,7 +19,7 @@ def reset_bracket():
     bracket = {}
     bracket['AverageBot'] = RouletteBot(average)
     bracket['LastBot'] = RouletteBot(last)
-    bracket['RandomBot'] = RouletteBot(random)
+    bracket['RandomBot'] = RouletteBot(randombot)
     bracket['OneShotBot'] = RouletteBot(one_shot)
     bracket['OutBidBot'] = RouletteBot(outbid)
     bracket['PatheticBot'] = RouletteBot(pathetic_attempt_at_analytics_bot)
@@ -39,6 +40,7 @@ def reset_bracket():
     bracket['BinaryBot'] = RouletteBot(binaryBot)
     #bracket['SarcomaBot'] = RouletteBot(sarcomaBot)
     bracket['TENaciousBot'] = RouletteBot(TENacious_bot)
+    bracket['SurvivalistBot'] = RouletteBot(SurvivalistBot)
     return bracket
 
 def tournament_score(score):
@@ -152,7 +154,7 @@ def average(hp, history, ties, alive, start):
         num = hp/3 + np.random.randint(-2,3)
     return num
 
-def random(hp, history, ties, alive, start):
+def randombot(hp, history, ties, alive, start):
     return 1 + np.random.randint(0, hp)
 
 def kamikaze(hp, history, ties, alive, start):
@@ -424,6 +426,138 @@ def TENacious_bot(hp, history, ties, alive, start):
     # prevent function blowup
     return 2
 
+def SurvivalistBot(hp, history, ties, alive, start):    
 
+    #Work out the stats on the opponent
+    Opponent_Remaining_HP = 100 - sum(history)
+    Opponent_Average_Bid = Opponent_Remaining_HP
+
+    if len(history) > 0:
+        Opponent_Average_Bid = Opponent_Remaining_HP / float(len(history))
+
+
+    HP_Difference = hp - Opponent_Remaining_HP
+
+    #Work out the future stats on the others
+    RemainingBots = (alive-2)
+    BotsToFight = 0
+
+    RemainderTree = RemainingBots
+
+    #How many do we actually need to fight?
+    while(RemainderTree > 1):
+        RemainderTree = float(RemainderTree / 2)
+        BotsToFight += 1
+
+    #Now we have all that data, lets work out an optimal bidding strategy
+    OptimalBid = 0
+    AverageBid = 0
+
+    #For some reason we've tied more than twice in a row, which means death occurs if we tie again
+    #So better to win one round going 'all in'
+    if ties > 1:
+        if BotsToFight < 1:
+            OptimalBid = hp - 1
+        else:
+            OptimalBid = hp - (BotsToFight+1)
+
+        #Err likely we're 0 or 1 hp, so we just return our HP
+        if OptimalBid < 1:
+            return hp
+        else:
+            return OptimalBid
+
+    #We have the upper hand (more HP than the opponent)
+    if HP_Difference > 0:
+        #Our first guess is to throw all of our opponent's HP at them
+        OptimalBid = HP_Difference
+
+        #But if we have more opponents to fight, we must divide our HP amongst our future opponents
+        if BotsToFight > 0:
+            #We could just divide our HP evenly amongst however many remaining bots there are
+            AverageBid = OptimalBid / BotsToFight
+
+            #But this is non-optimal as later bots will have progressively less HP
+            HalfBid = OptimalBid / 2
+
+            #We have fewer bots to fight, apply progressive
+            if BotsToFight < 3:
+
+                #Check it exceeds the bot's average
+                if HalfBid > Opponent_Average_Bid:
+                    return np.floor(HalfBid)
+                else:
+                    #It doesn't, lets maybe shuffle a few points over to increase our odds of winning
+                    BidDifference = Opponent_Average_Bid - HalfBid
+
+                    #Check we can actually match the difference first
+                    if (HalfBid+BidDifference) < OptimalBid:
+                        if BidDifference < 8:
+                            #We add half the difference of the BidDifference to increase odds of winning
+                            return np.floor(HalfBid + (BidDifference/2))
+                        else:
+                            #It's more than 8, skip this madness
+                            return np.floor(HalfBid)
+
+                    else:
+                        #We can't match the difference, go ahead as planned
+                        return np.floor(HalfBid)
+
+
+            else:
+                #There's a lot of bots to fight, either strategy is viable
+                #So we use randomisation to throw them off!
+                if bool(random.getrandbits(1)):
+                    return np.floor(AverageBid)
+                else:
+                    return np.floor(HalfBid)
+
+        else:
+            #There are no other bots to fight! Punch it Chewy!
+            return OptimalBid
+
+    else:
+
+        if hp == 100:
+            #It appears to be our opening round (assumes opponent HP same as ours)
+            #We have no way of knowing what our opponent will play into the battle
+
+            #Only us in the fight? Full power to weapons!
+            if BotsToFight < 1:
+                return hp - 1
+            else:
+                #As what might happen is literally random
+                #We will also be literally random
+                #Within reason
+
+                #Work out how many bots we need to pass
+                HighestBid = hp - (BotsToFight+1)
+                AverageBid = hp/BotsToFight
+                LowestBid = np.floor(np.sqrt(AverageBid))
+
+                #Randomly choose between picking a random number out of thin air
+                #And an average
+                if bool(random.getrandbits(1)):
+                    return np.minimum(LowestBid,HighestBid)
+                else:
+                    return AverageBid
+
+        else:
+            #Oh dear, we have less HP than our opponent
+            #We'll have to play it crazy to win this round (with the high probability we'll die next round)
+            #We'll leave ourselves 1 hp (if we can)
+
+            if BotsToFight < 1:
+                OptimalBid = hp - 1
+            else:
+                OptimalBid = hp - (BotsToFight+1)
+
+            #Err likely we're 0(???) or 1 hp, so we just return our HP
+            if OptimalBid < 1:
+                return hp
+            else:
+                return OptimalBid
+            
+            
 if __name__=='__main__':
     main()
