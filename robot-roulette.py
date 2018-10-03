@@ -1,6 +1,6 @@
 import numpy as np
 from collections import OrderedDict
-__version__='0.0.0'
+__version__='0.1'
 
 class RouletteBot:
     def __init__(self, func):
