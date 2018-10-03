@@ -12,7 +12,7 @@ class RouletteBot:
         num = self.func(self.hp, e_history, ties, alive, start)
         if num > self.hp:
             num = 0
-        return num
+        return int(num)
 
 def reset_bracket():
     bracket = {}
@@ -32,12 +32,13 @@ def reset_bracket():
     bracket['GangBot1'] = RouletteBot(gang_bot)
     bracket['GangBot2'] = RouletteBot(gang_bot)
     #bracket['GuessBot'] = RouletteBot(guess_bot)
-    bracket['CalculatingBot'] = RouletteBot(calculatingBot)
+    #bracket['CalculatingBot'] = RouletteBot(calculatingBot)
     bracket['TatBot'] = RouletteBot(tatbot)
     bracket['SpreaderBot'] = RouletteBot(Spreader)
     bracket['KickBot'] = RouletteBot(kick)
     bracket['BinaryBot'] = RouletteBot(binaryBot)
-    bracket['SarcomaBot'] = RouletteBot(sarcomaBot)
+    #bracket['SarcomaBot'] = RouletteBot(sarcomaBot)
+    bracket['TENaciousBot'] = RouletteBot(TENacious_bot)
     return bracket
 
 def tournament_score(score):
@@ -375,7 +376,7 @@ def tatbot(hp, history, ties, alive, start):
     spend = min(spend, history[-1] + np.random.randint(0, 5))
   return min(spend, opp_hp, hp)
 
-def Spreader(hp, history, ties, alive):
+def Spreader(hp, history, ties, alive, start):
    if alive == 2:
        return hp-1
    if len(history) < 2:
@@ -404,5 +405,19 @@ def sarcomaBot(hp, history, ties, alive, start):
     if opponentHealth < hp:
         return opponentHealth + 1
     return np.random.randint(hp/1.25, hp-1) or 1
+
+
+def TENacious_bot(hp, history, ties, alive, start):
+    max_amount=hp-(alive-1)*2;
+    if max_amount<2: max_amount=2
+
+    if alive==2: return hp-1
+    if ties==0: return np.minimum(10, max_amount)
+    if ties==1: return np.minimum(20, max_amount)
+    if ties==2: return np.minimum(40, max_amount)
+    # prevent function blowup
+    return 2
+
+
 if __name__=='__main__':
     main()
