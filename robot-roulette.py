@@ -44,6 +44,7 @@ def reset_bracket():
     bracket['HalvsiestBot'] = RouletteBot(HalvsiesBot)
     bracket['GeometricBot'] = RouletteBot(geometric)
     bracket['BoxBot'] = RouletteBot(BoxBot)
+    bracket['UpYoursBot'] = RouletteBot(UpYoursBot)
     return bracket
 
 def tournament_score(score):
@@ -69,11 +70,11 @@ def main():
     for key, val in tscore:
         print '{0}:\t{1:.3f}\t{2:.1f}%\t{3:.1f}%\t'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)))
 
-    print '<pre>'
-    print '|\tBot Name\t|\tScore\t|\tWinRate\t|\tTieRate\t|'
+    print '<ol>'
+    print '<b>Name\tScore\tWinRate\tTieRate</b>'
     for key, val in tscore:
-        print '|\t{0}\t|\t{1:.3f}\t|\t{2:.1f}%\t|\t{3:.1f}%\t|'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)))
-    print '</pre>'
+        print '<li><b>{0}:</b>\t{1:.3f}\t{2:.1f}%\t{3:.1f}%</li>'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)))
+    print '</ol>'
 
 def tournament(bracket):
     unused = bracket
@@ -622,6 +623,33 @@ def BoxBot(hp, history, ties, alive, start):
         return hp - 1
     else:
         return RandomOutbid
+def UpYoursBot(hp, history, ties, alive, start):
+    willToLive = True# if "I" is in "VICTORY"
+
+    args = [hp, history, ties, alive, start]
+    enemyHealth = 100 - sum(history)
+    roundNumber = len(history)
+
+    if roundNumber is 0:
+        # Steal HalfPunchBot
+        return halfpunch(*args) + 2
+
+    if alive == 2:
+        # Nick OneShotBot
+        return one_shot(*args)
+
+    if enemyHealth >= hp:
+        # Pinch SarcomaBotMkTwo
+        return sarcomaBotMkTwo(*args) + 1
+
+    if enemyHealth < hp:
+        # Rip off KickBot
+        return kick(*args) + 1
+
+    if not willToLive:
+        # Peculate KamikazeBot
+        return kamikaze(*args) + 1
+
     
 if __name__=='__main__':
     main()
