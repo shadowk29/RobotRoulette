@@ -10,7 +10,7 @@ class RouletteBot:
 
     def guess(self, e_history, ties, alive, start):
         num = self.func(self.hp, e_history, ties, alive, start)
-        if num > self.hp:
+        if num > self.hp or num < 0:
             num = 0
         return int(num)
 
