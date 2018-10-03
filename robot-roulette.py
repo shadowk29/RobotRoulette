@@ -29,18 +29,20 @@ def reset_bracket():
     bracket['WorstCaseBot'] = RouletteBot(worst_case)
     bracket['SpitballBot'] = RouletteBot(spitballBot)
     bracket['AntiGangBot'] = RouletteBot(anti_gangbot)
-    bracket['GangBot0'] = RouletteBot(gang_bot)
-    bracket['GangBot1'] = RouletteBot(gang_bot)
-    bracket['GangBot2'] = RouletteBot(gang_bot)
+    #bracket['GangBot0'] = RouletteBot(gang_bot)
+    #bracket['GangBot1'] = RouletteBot(gang_bot)
+    #bracket['GangBot2'] = RouletteBot(gang_bot)
     #bracket['GuessBot'] = RouletteBot(guess_bot)
     #bracket['CalculatingBot'] = RouletteBot(calculatingBot)
     bracket['TitTatBot'] = RouletteBot(tatbot)
     bracket['SpreaderBot'] = RouletteBot(Spreader)
     bracket['KickBot'] = RouletteBot(kick)
     bracket['BinaryBot'] = RouletteBot(binaryBot)
-    bracket['SarcomaBot'] = RouletteBot(sarcomaBot)
+    bracket['SarcomaBot'] = RouletteBot(sarcomaBotMkTwo)
     bracket['TENaciousBot'] = RouletteBot(TENacious_bot)
     bracket['SurvivalistBot'] = RouletteBot(SurvivalistBot)
+    bracket['HalvsiestBot'] = RouletteBot(HalvsiesBot)
+    bracket['GeometricBot'] = RouletteBot(geometric)
     return bracket
 
 def tournament_score(score):
@@ -280,8 +282,8 @@ def gang_bot(hp,history,ties,alive,start):
 
     tieBreak = 0
     if ties:
-        tiebreak = np.random.randint(1,3) 
-        return tieBreak 
+        tieBreak = np.random.randint(1,3)
+        return tieBreak
     gang = False
     if history:
             count = 0
@@ -291,20 +293,20 @@ def gang_bot(hp,history,ties,alive,start):
             if count > 1 or (len(history)==1 and count == 1):
                     gang = True
     if gang and hp<100:#Both bots need to have a history for a handshake
-            if hp > sum(history):
-                    return 2
-            elif hp == sum(history):
-                    return np.random.randint(1,3)
+            if hp > 100-sum(history):
+                    return np.random.randint(0,hp/5)
+            elif hp == 100-sum(history):
+                    return np.random.randint(0,hp/10)
             else:
                     return 1
     elif gang:
-            fS = sum(history)/7
+            fS = (100-sum(history))/7
             return (fS+1)*7
     else:
             fP = hp/7
             answer = fP*7
             if history:
-                    opp_hp = sum(history)
+                    opp_hp = 100-sum(history)
                     if len(history)>1:
                             opp_at_1 = 100-history[0]
                             ratio = 1.0*history[1]/opp_at_1
@@ -404,15 +406,17 @@ def kick(hp, history, ties, alive, start):
 def binaryBot(hp, history, ties, alive, start):
     return int(np.floor(hp/2)) or 1
 
-def sarcomaBot(hp, history, ties, alive, start):
+def sarcomaBotMkTwo(hp, history, ties, alive, start):
     if alive == 2:
         return hp - 1
     if not history:
-        return int(hp/2 + np.random.randint(0, hp/4))
+        return int(hp / 2 + np.random.randint(0, hp / 8  or 1))
     opponentHealth = 100 - sum(history)
     if opponentHealth < hp:
         return opponentHealth + 1
-    return np.random.randint(hp/1.25, hp-1) if hp/1.25 < hp-1 else 1
+    minimum = np.round(hp * 0.60)
+    maximum = hp - 1 or 1
+    return np.random.randint(minimum, maximum) if minimum < maximum else 1
 
 
 def TENacious_bot(hp, history, ties, alive, start):
@@ -557,7 +561,43 @@ def SurvivalistBot(hp, history, ties, alive, start):
                 return hp
             else:
                 return OptimalBid
-            
-            
+
+def HalvsiesBot(hp, history, ties, alive, start):
+    return np.floor(hp/2)          
+
+
+def geometric(hp, history, ties, alive, start):
+    opponentHP = 100 - sum(history)
+
+    # If we're doomed, throw in the towel.
+    if hp == 1:
+        return 1
+
+    # If this is the last battle or we can't outsmart the opponent, go all out.
+    if alive == 2 or ties == 2:
+        return hp - 1
+
+    # If the opponent is weak, squish it.
+    if opponentHP <= hp / 3:
+        if ties == 2:
+            return opponentHP + 1
+        else:
+            return opponentHP
+
+    # If the opponent has full health, pick something and hope for the best.
+    if not history:
+        return np.random.randint(hp / 3, hp)
+
+    # Assume the opponent is going with a constant fraction of remaining health.
+    fractions = []
+    health = 100
+    for x in history:
+        fractions.append(float(x) / health)
+        health -= x
+    avg = sum(fractions) / len(fractions)
+    expected = int(avg * opponentHP)
+    return min(expected + 2, hp - 1)
+
+
 if __name__=='__main__':
     main()
