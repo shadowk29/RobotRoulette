@@ -75,12 +75,6 @@ def main():
     for key, val in tscore:
         print '{0}:\t{1:.3f}\t{2:.1f}%\t{3:.1f}%\t'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)))
 
-    print '<ol>'
-    print '<b>Name\tScore\tWinRate\tTieRate</b>'
-    for key, val in tscore:
-        print '<li><b>{0}:</b>\t{1:.3f}\t{2:.1f}%\t{3:.1f}%</li>'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)))
-    print '</ol>'
-
 def tournament(bracket):
     unused = bracket
     used = {}
