@@ -19,7 +19,7 @@ class RouletteBot:
 def reset_bracket():
     bracket = {}
     bracket['AverageBot'] = RouletteBot(average)
-    bracket['LastBot     '] = RouletteBot(last)
+    bracket['LastBot'] = RouletteBot(last)
     bracket['RandomBot'] = RouletteBot(randombot)
     bracket['OneShotBot'] = RouletteBot(one_shot)
     bracket['OutBidBot'] = RouletteBot(outbid)
@@ -37,7 +37,7 @@ def reset_bracket():
     bracket['CalculatingBot'] = RouletteBot(calculatingBot)
     bracket['TitTatBot'] = RouletteBot(tatbot)
     bracket['SpreaderBot'] = RouletteBot(Spreader)
-    bracket['KickBot     '] = RouletteBot(kick)
+    bracket['KickBot'] = RouletteBot(kick)
     bracket['SarcomaBotMk4'] = RouletteBot(sarcomaBotMkFour)
     bracket['SarcomaBotMk5'] = RouletteBot(sarcomaBotMkFive)
     bracket['SarcomaBotMk6'] = RouletteBot(sarcomaBotMkSix)
@@ -45,7 +45,7 @@ def reset_bracket():
     bracket['SurvivalistBot'] = RouletteBot(SurvivalistBot)
     bracket['HalvsiestBot'] = RouletteBot(HalvsiesBot)
     bracket['GeometricBot'] = RouletteBot(geometric)
-    bracket['BoxBot     '] = RouletteBot(BoxBot)
+    bracket['BoxBot'] = RouletteBot(BoxBot)
     bracket['UpYoursBot'] = RouletteBot(UpYoursBot)
     bracket['AggroCalcBot'] = RouletteBot(aggresiveCalculatingBot)
     bracket['DeterminBot'] = RouletteBot(deterministicBot)
@@ -63,7 +63,7 @@ def tournament_score(score):
 def main():
     bracket = reset_bracket()
     score = {key: [0,0] for key in list(bracket.keys())}
-    N = 10000
+    N = 100000
     for n in range(N):
         if n%100 == 0:
             print n
@@ -852,7 +852,7 @@ def antiantiupyoursbot(hp, history, ties, alive, start):
     if not history:
       return (hp / 2) + 3
     return sarcomaBotMkSix(hp, history, ties, alive, start)
-  return min(guess(hp, history, ties, alive, start) + 1, hp)
+  return min(guess(hp, history, ties, alive, start), hp)
 
 def classybot(hp, history, ties, alive, start):
   class cheekyvalue:
