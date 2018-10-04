@@ -74,8 +74,6 @@ def main():
     score = {key: [0,0] for key in list(bracket.keys())}
     N = 10000
     for n in range(N):
-        if n%100 == 0:
-            print n
         winner, tied, eliminated = tournament(bracket)
         if not tied:
             score[winner][0] += 1
@@ -86,10 +84,22 @@ def main():
             round_eliminated[key][eliminated[key]] += 1
         bracket = reset_bracket()
     tscore = tournament_score(score)
+
+    avg = 0
+    for val in tscore:
+        avg += val[1]
+    avg /= len(tscore) * float(N)
+    print 'Average Tournament Score: {0:.2g}'.format(avg)
+
+    
     print 'Name\tScore\tWinRate\tTieRate\tElimination Probability'
     for key, val in tscore:
-        print '{0}\t{1:.3f}\t{2:.1f}%\t{3:.1f}%\t{4}%'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)), np.around(round_eliminated[key]/float(N)*100,0).astype(np.int64))
+        if val/float(N) > avg:
+            print '<b>{0}</b>\t{1:.3f}\t{2:.1f}%\t{3:.1f}%\t{4}%'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)), np.around(round_eliminated[key]/float(N)*100,0).astype(np.int64))
+        else:
+            print '{0}\t{1:.3f}\t{2:.1f}%\t{3:.1f}%\t{4}%'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)), np.around(round_eliminated[key]/float(N)*100,0).astype(np.int64))
 
+    
 def tournament(bracket):
     unused = bracket
     eliminated = {}
