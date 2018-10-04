@@ -55,6 +55,7 @@ def reset_bracket():
     bracket['GenericBot'] = RouletteBot(generic_bot)
     bracket['ClassyBot'] = RouletteBot(classybot)
     bracket['CoastBotV2'] = RouletteBot(coastV2)
+    bracket['CoastBot'] = RouletteBot(coast)
     bracket['MehBot'] = RouletteBot(meh_bot)
     bracket['Bot13'] = RouletteBot(bot13)
     bracket['CautiousBot'] = RouletteBot(cautious_gambler)
@@ -880,6 +881,34 @@ def generic_bot(hp, history, ties, alive, start):
     rate = history[-1] * 1.0 / (history[-1] + opp)
     return int(np.minimum(max_sac, rate * opp + 1))
 
+def coast(hp, history, ties, alive, start):
+   if alive == 2:
+   # Last round, go all out
+       return hp - 1 + ties
+   else:
+       # Find the next power of two after the starting number of players
+       players = start
+       while math.log(players, 2) % 1 != 0:
+         players += 1
+
+       # This is the number of total rounds
+       rounds = int(math.log(players, 2))
+
+       bid = 99 / rounds
+
+       if alive == start:
+           # First round, add our leftover hp to this bid to increase our chances
+           leftovers = 99 - (bid * rounds)
+           return bid + leftovers
+       else:
+           # Else, just try and coast
+
+           opp_hp = 100 - sum(history)
+           # If opponent's hp is low enough, we can save some hp for the 
+           # final round by bidding their hp + 1
+           return min(bid, opp_hp + 1)
+
+        
 def coastV2(hp, history, ties, alive, start):
    # A version of coast bot that will be more agressive in the early rounds
 
