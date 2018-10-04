@@ -2,7 +2,7 @@ import numpy as np
 import random
 from collections import OrderedDict
 import inspect
-__version__='0.2'
+__version__='0.3'
 
 class RouletteBot:
     def __init__(self, func):
@@ -50,7 +50,7 @@ def reset_bracket():
     bracket['AggroCalcBot'] = RouletteBot(aggresiveCalculatingBot)
     bracket['DeterminBot'] = RouletteBot(deterministicBot)
     bracket['AAUpYoursBot'] = RouletteBot(antiantiupyoursbot)
-    #bracket['GenericBot'] = RouletteBot(generic_bot)
+    bracket['GenericBot'] = RouletteBot(generic_bot)
     bracket['ClassyBot'] = RouletteBot(classybot)
     return bracket
 
@@ -79,9 +79,9 @@ def main():
             round_eliminated[key][eliminated[key]] += 1
         bracket = reset_bracket()
     tscore = tournament_score(score)
-    print 'Name\tScore\tWinRate\tTieRate\rElimination Probability'
+    print 'Name\tScore\tWinRate\tTieRate\tElimination Probability'
     for key, val in tscore:
-        print '{0}\t{1:.3f}\t{2:.1f}%\t{3:.1f}%\t{4}%'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)), np.around(round_eliminated[key]/float(N)*100,0))
+        print '{0}\t{1:.3f}\t{2:.1f}%\t{3:.1f}%\t{4}%'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)), np.around(round_eliminated[key]/float(N)*100,0).astype(np.int64))
 
 def tournament(bracket):
     unused = bracket
@@ -893,9 +893,9 @@ def generic_bot(hp, history, ties, alive, start):
     opp = 100 - sum(history)
     if opp < hp:
         return opp + ties
-    max_sac = np.max(int(hp * 0.7), 1)
+    max_sac = np.maximum(int(hp * 0.7), 1)
     rate = history[-1] * 1.0 / (history[-1] + opp)
-    return int(np.min(max_sac, rate * opp + 1))
+    return int(np.minimum(max_sac, rate * opp + 1))
 
 
 if __name__=='__main__':
