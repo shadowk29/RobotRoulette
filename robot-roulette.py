@@ -14,9 +14,9 @@ class RouletteBot:
 
     def guess(self, e_history, ties, alive, start):
         num = self.func(self.hp, e_history, ties, alive, start)
-        if num > self.hp or num < 0 or not isinstance(num, int):
-            num = 0
-        return int(num)
+        if num > self.hp or num < 0 or not isinstance(num, int) or type(num) != type(0):
+            num = 0        
+        return num
 
 def reset_bracket():
     bracket = {}
@@ -74,6 +74,8 @@ def main():
     score = {key: [0,0] for key in list(bracket.keys())}
     N = 100000
     for n in range(N):
+        if n%1000 == 0:
+            print n
         winner, tied, eliminated = tournament(bracket)
         if not tied:
             score[winner][0] += 1
@@ -957,18 +959,14 @@ def cautious_gambler(hp, history, ties, alive, start):
     if(history):
         opp_hp = 100 - sum(history)
         remaining_rounds = np.ceil(np.log2(start)) - len(history)
-        if remaining_rounds == 0:
-            print 'oops'
 
         start_bet = opp_hp / 2
-        buf = (hp - start_bet)/remaining_rounds
-        buffer_bet = 0
-        if buf > 0 and isinstance(buf, int):
-            buffer_bet = np.random.randint(0, buf)
-        bet = start_bet + buffer_bet + ties
+        buff = int((hp - start_bet)/remaining_rounds if remaining_rounds > 0 else (hp - start_bet))
+        buff_bet = np.random.randint(0, buff) if buff > 0 else 0
+        bet = start_bet + buff_bet + ties
 
         if bet >= hp or bet > opp_hp:
-            bet = min(hp - 1, opp_hp)
+            bet = np.minimum(hp - 1, opp_hp)
 
         return int(bet)
     else:
