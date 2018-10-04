@@ -41,7 +41,7 @@ def reset_bracket():
     bracket['SpreaderBot'] = RouletteBot(Spreader)
     bracket['KickBot'] = RouletteBot(kick)
     bracket['SarcomaBotMk4'] = RouletteBot(sarcomaBotMkFour)
-    bracket['SarcomaBotMk5'] = RouletteBot(sarcomaBotMkFive)
+    bracket['SarcomaBotMk7'] = RouletteBot(sarcomaBotMkSeven)
     bracket['SarcomaBotMk6'] = RouletteBot(sarcomaBotMkSix)
     bracket['TENaciousBot'] = RouletteBot(TENacious_bot)
     bracket['SurvivalistBot'] = RouletteBot(SurvivalistBot)
@@ -54,7 +54,7 @@ def reset_bracket():
     bracket['AAUpYoursBot'] = RouletteBot(antiantiupyoursbot)
     bracket['GenericBot'] = RouletteBot(generic_bot)
     bracket['ClassyBot'] = RouletteBot(classybot)
-    bracket['CoastBot'] = RouletteBot(coast)
+    bracket['CoastBotV2'] = RouletteBot(coastV2)
     bracket['MehBot'] = RouletteBot(meh_bot)
     bracket['Bot13'] = RouletteBot(bot13)
     bracket['CautiousBot'] = RouletteBot(cautious_gambler)
@@ -772,7 +772,15 @@ def aggresiveCalculatingBot(hp, history, ties, alive, start):
     return int(actualBet)
 
 def sarcomaBotMkFour(hp, history, ties, alive, start):
-    if inspect.stack()[1][3] != 'guess' and inspect.stack()[1] == 5:
+    def isSafe(parentCall):
+        frame, filename, line_number, function_name, lines, index = parentCall
+        if function_name is not 'guess':
+            return False
+        if line_number > 60:
+            return False
+        return True
+
+    if not isSafe(inspect.stack()[1]):
         return hp
     if alive == 2:
         return hp - 1
@@ -788,25 +796,16 @@ def sarcomaBotMkFour(hp, history, ties, alive, start):
     maximum = np.round(hp * 0.80) or 1
     return np.random.randint(minimum, maximum) if minimum < maximum else 1
 
-def sarcomaBotMkFive(hp, history, ties, alive, start):
-    if inspect.stack()[1][3] != 'guess' and inspect.stack()[1] == 5:
-        return hp
-    if alive == 2:
-        return hp - 1
-    if not history:
-        startBid = hp / 2
-        maxAdditionalBid = np.round(hp * 0.07) if hp * 0.07 > 3 else 3
-        additionalBid = np.random.randint(1, maxAdditionalBid)
-        return int(startBid + additionalBid + ties)
-    opponentHealth = 100 - sum(history)
-    if opponentHealth < hp:
-        return opponentHealth + ties
-    minimum = np.round(hp * 0.54)
-    maximum = np.round(hp * 0.68) or 1
-    return np.random.randint(minimum, maximum) if minimum < maximum else 1
-
 def sarcomaBotMkSix(hp, history, ties, alive, start):
-    if inspect.stack()[1][3] != 'guess' and inspect.stack()[1] == 5:
+    def isSafe(parentCall):
+        frame, filename, line_number, function_name, lines, index = parentCall
+        if function_name is not 'guess':
+            return False
+        if line_number > 60:
+            return False
+        return True
+
+    if not isSafe(inspect.stack()[1]):
         return hp
     if alive == 2:
         return hp - 1
@@ -815,6 +814,28 @@ def sarcomaBotMkSix(hp, history, ties, alive, start):
         maxAdditionalBid = np.round(hp * 0.06) if hp * 0.06 > 3 else 3
         additionalBid = np.random.randint(2, maxAdditionalBid)
         return int(startBid + additionalBid + ties)
+    opponentHealth = 100 - sum(history)
+    if opponentHealth < hp:
+        return opponentHealth + ties
+    minimum = np.round(hp * 0.55)
+    maximum = np.round(hp * 0.70) or 1
+    return np.random.randint(minimum, maximum) if minimum < maximum else 1
+
+def sarcomaBotMkSeven(hp, history, ties, alive, start):
+    def isSafe(parentCall):
+        frame, filename, line_number, function_name, lines, index = parentCall
+        if function_name is not 'guess':
+            return False
+        if line_number > 60:
+            return False
+        return True
+
+    if not isSafe(inspect.stack()[1]):
+        return hp
+    if alive == 2:
+        return hp - 1
+    if not history:
+        return 14 + ties
     opponentHealth = 100 - sum(history)
     if opponentHealth < hp:
         return opponentHealth + ties
@@ -859,7 +880,9 @@ def generic_bot(hp, history, ties, alive, start):
     rate = history[-1] * 1.0 / (history[-1] + opp)
     return int(np.minimum(max_sac, rate * opp + 1))
 
-def coast(hp, history, ties, alive, start):
+def coastV2(hp, history, ties, alive, start):
+   # A version of coast bot that will be more agressive in the early rounds
+
    if alive == 2:
    # Last round, go all out
        return hp - 1 + ties
@@ -872,19 +895,24 @@ def coast(hp, history, ties, alive, start):
        # This is the number of total rounds
        rounds = int(math.log(players, 2))
 
-       bid = 99 / rounds
+       #Decrease repeated bid by 2 to give us more to bid on the first 2 rounds
+       bid = (99 / rounds) - 2
 
-       if alive == start:
-           # First round, add our leftover hp to this bid to increase our chances
+       if len(history) == 0:
+           # First round, add 2/3rds our leftover hp to this bid to increase our chances
            leftovers = 99 - (bid * rounds)
-           return bid + leftovers
+           return int(bid + math.ceil(leftovers * 2.0 / 3.0))
+       elif len(history) == 1:
+           # Second round, add 1/3rd of our leftover hp to this bid to increase our chances
+           leftovers = 99 - (bid * rounds)
+           return int(bid + math.ceil(leftovers * 1.0 / 3.0))
        else:
            # Else, just try and coast
 
            opp_hp = 100 - sum(history)
            # If opponent's hp is low enough, we can save some hp for the 
            # final round by bidding their hp + 1
-           return min(bid, opp_hp + 1)
+           return int(min(bid, opp_hp + 1))
 
 
 def cautious_gambler(hp, history, ties, alive, start):
@@ -915,9 +943,26 @@ def cautious_gambler(hp, history, ties, alive, start):
 
 
 def meh_bot(hp, history, ties, alive, start):
+    # Attempt one      MehBot         | 0.020 | 1.6%    | 0.8%    | [34 36 12 10  6  1]%
     point = hp / 2 + 3
+
+    if ties > 1:
+        ties + 1
+
+    # Go all out on last round
+    if alive == 2:
+        return hp - 1
+
+    opponent_hp = 100 - sum(history)
+
     if hp < 3:
         return 1
+    elif not history:
+        # Start with 30, This will increase the chance of dying first round but hopefully better fighting chance after
+        return 30
+    elif point > opponent_hp:
+        # Never use more points then needed to win
+        return opponent_hp + ties
     elif point >= hp:
         return hp - 1
     else:
