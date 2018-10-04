@@ -62,27 +62,33 @@ def tournament_score(score):
        
 def main():
     bracket = reset_bracket()
+    rounds = int(np.floor(np.log2(len(bracket))))
+    round_eliminated = {key: np.zeros(rounds, dtype=np.int64) for key in list(bracket.keys())}
     score = {key: [0,0] for key in list(bracket.keys())}
-    N = 100000
+    N = 10000
     for n in range(N):
         if n%100 == 0:
             print n
-        winner, tied = tournament(bracket)
+        winner, tied, eliminated = tournament(bracket)
         if not tied:
             score[winner][0] += 1
         else:
             score[winner[0]][1] += 1
             score[winner[1]][1] += 1
+        for key in list(eliminated.keys()):
+            round_eliminated[key][eliminated[key]] += 1
         bracket = reset_bracket()
     tscore = tournament_score(score)
-    print 'Name\tScore\tWinRate\tTieRate'
+    print 'Name\tScore\tWinRate\tTieRate\rElimination Probability'
     for key, val in tscore:
-        print '{0}\t{1:.3f}\t{2:.1f}%\t{3:.1f}%\t'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)))
+        print '{0}\t{1:.3f}\t{2:.1f}%\t{3:.1f}%\t{4}%'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)), np.around(round_eliminated[key]/float(N)*100,0))
 
 def tournament(bracket):
     unused = bracket
+    eliminated = {}
     used = {}
     start = len(unused)
+    roundnum = 0
     while len(unused) + len(used) > 1:
         alive = len(unused) + len(used)
         #print 'Contestants remaining: {0}'.format(len(unused) + len(used))
@@ -91,9 +97,11 @@ def tournament(bracket):
             used[index] = unused[index]
             unused = used
             used = {}
+            roundnum += 1
         elif len(unused) == 0:
             unused = used
             used = {}
+            roundnum += 1
         else:
             
             redindex = np.random.choice(list(unused.keys()))
@@ -119,6 +127,7 @@ def tournament(bracket):
             if rednum > bluenum:
                 #print 'Blue dies!'
                 del unused[blueindex]
+                eliminated[blueindex] = roundnum
                 red.hp -= rednum
                 red.history.append(rednum)
                 if red.hp > 0:
@@ -126,9 +135,11 @@ def tournament(bracket):
                     del unused[redindex]
                 else:
                     del unused[redindex]
+                    eliminated[redindex] = roundnum
             elif bluenum > rednum:
                 #print 'Red dies!'
                 del unused[redindex]
+                eliminated[redindex] = roundnum
                 blue.hp -= bluenum
                 blue.history.append(bluenum)
                 if blue.hp > 0:
@@ -136,16 +147,19 @@ def tournament(bracket):
                     del unused[blueindex]
                 else:
                     del unused[blueindex]
+                    eliminated[blueindex] = roundnum
             else: #if you're still tied at this point, both die
                 #print 'Both die!'
                 del unused[redindex]
                 del unused[blueindex]
+                eliminated[redindex] = roundnum
+                eliminated[blueindex] = roundnum
     if unused:
-        return list(unused.keys())[0], False
+        return list(unused.keys())[0], False, eliminated
     elif used:
-        return list(used.keys())[0], False
+        return list(used.keys())[0], False, eliminated
     else:
-        return [redindex, blueindex], True
+        return [redindex, blueindex], True, eliminated
         
                 
 def last(hp, history, ties, alive, start):
