@@ -2,7 +2,7 @@ import numpy as np
 import random
 from collections import OrderedDict
 import inspect
-__version__='0.1'
+__version__='0.2'
 
 class RouletteBot:
     def __init__(self, func):
@@ -12,14 +12,14 @@ class RouletteBot:
 
     def guess(self, e_history, ties, alive, start):
         num = self.func(self.hp, e_history, ties, alive, start)
-        if num > self.hp or num < 0:
+        if num > self.hp or num < 0 or not isinstance(num, int):
             num = 0
         return int(num)
 
 def reset_bracket():
     bracket = {}
     bracket['AverageBot'] = RouletteBot(average)
-    bracket['LastBot'] = RouletteBot(last)
+    bracket['LastBot     '] = RouletteBot(last)
     bracket['RandomBot'] = RouletteBot(randombot)
     bracket['OneShotBot'] = RouletteBot(one_shot)
     bracket['OutBidBot'] = RouletteBot(outbid)
@@ -37,8 +37,7 @@ def reset_bracket():
     bracket['CalculatingBot'] = RouletteBot(calculatingBot)
     bracket['TitTatBot'] = RouletteBot(tatbot)
     bracket['SpreaderBot'] = RouletteBot(Spreader)
-    bracket['KickBot'] = RouletteBot(kick)
-    bracket['BinaryBot'] = RouletteBot(binaryBot)
+    bracket['KickBot     '] = RouletteBot(kick)
     bracket['SarcomaBotMk4'] = RouletteBot(sarcomaBotMkFour)
     bracket['SarcomaBotMk5'] = RouletteBot(sarcomaBotMkFive)
     bracket['SarcomaBotMk6'] = RouletteBot(sarcomaBotMkSix)
@@ -46,10 +45,13 @@ def reset_bracket():
     bracket['SurvivalistBot'] = RouletteBot(SurvivalistBot)
     bracket['HalvsiestBot'] = RouletteBot(HalvsiesBot)
     bracket['GeometricBot'] = RouletteBot(geometric)
-    bracket['BoxBot'] = RouletteBot(BoxBot)
+    bracket['BoxBot     '] = RouletteBot(BoxBot)
     bracket['UpYoursBot'] = RouletteBot(UpYoursBot)
     bracket['AggroCalcBot'] = RouletteBot(aggresiveCalculatingBot)
-    bracket['DeterministicBot'] = RouletteBot(deterministicBot)
+    bracket['DeterminBot'] = RouletteBot(deterministicBot)
+    bracket['AAUpYoursBot'] = RouletteBot(antiantiupyoursbot)
+    #bracket['GenericBot'] = RouletteBot(generic_bot)
+    bracket['ClassyBot'] = RouletteBot(classybot)
     return bracket
 
 def tournament_score(score):
@@ -61,7 +63,7 @@ def tournament_score(score):
 def main():
     bracket = reset_bracket()
     score = {key: [0,0] for key in list(bracket.keys())}
-    N = 1000
+    N = 10000
     for n in range(N):
         if n%100 == 0:
             print n
@@ -75,7 +77,7 @@ def main():
     tscore = tournament_score(score)
     print 'Name\tScore\tWinRate\tTieRate'
     for key, val in tscore:
-        print '{0}:\t{1:.3f}\t{2:.1f}%\t{3:.1f}%\t'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)))
+        print '{0}\t{1:.3f}\t{2:.1f}%\t{3:.1f}%\t'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)))
 
 def tournament(bracket):
     unused = bracket
@@ -840,6 +842,42 @@ def sarcomaBotMkSix(hp, history, ties, alive, start):
     minimum = np.round(hp * 0.55)
     maximum = np.round(hp * 0.70) or 1
     return np.random.randint(minimum, maximum) if minimum < maximum else 1
+
+def antiantiupyoursbot(hp, history, ties, alive, start):
+  def guess(hp, history, ties, alive, start):
+    if not history:
+      return (hp / 2) + 3
+    return sarcomaBotMkSix(hp, history, ties, alive, start)
+  return min(guess(hp, history, ties, alive, start) + 1, hp)
+
+def classybot(hp, history, ties, alive, start):
+  class cheekyvalue:
+    def __init__(self, value = 100):
+      self.value = value
+    def __cmp__(self, other):
+      return False
+    def __int__(self):
+      return self.value
+  if alive == 2:
+      return cheekyvalue(100)
+  opp_hp = 100 - sum(history)
+  spend = 30 + np.random.randint(0, 21)
+  if history:
+    spend = min(spend, history[-1] + np.random.randint(0, 5))
+  return min(spend, opp_hp, hp)
+
+
+def generic_bot(hp, history, ties, alive, start):
+    if alive == 2:
+        return hp - 1
+    if not history:
+        return int(hp * 7.0 / 13)
+    opp = 100 - sum(history)
+    if opp < hp:
+        return opp + ties
+    max_sac = np.max(int(hp * 0.7), 1)
+    rate = history[-1] * 1.0 / (history[-1] + opp)
+    return int(np.min(max_sac, rate * opp + 1))
 
 
 if __name__=='__main__':
