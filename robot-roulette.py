@@ -338,34 +338,31 @@ def anti_gangbot(hp, history, ties, alive, start):
         return n
 
 def gang_bot(hp,history,ties,alive,start):
-
-    tieBreak = 0
-    if ties:
-        tieBreak = np.random.randint(1,3)
-        return tieBreak
+    mult=3
     gang = False
     if history:
             count = 0
             for bid in history:
-                    if bid % 7 == 0:
+                    if bid % mult == 0:
                             count += 1
-            if count > 1 or (len(history)==1 and count == 1):
+            if count == len(history):
                     gang = True
     if gang and hp<100:#Both bots need to have a history for a handshake
             if hp > 100-sum(history):
-                    return np.random.randint(0,hp/5 or 1)
+                    a=np.random.randint(0,hp/9+1)
             elif hp == 100-sum(history):
-                    return np.random.randint(0,hp/10 or 1)
+                    a=np.random.randint(0,hp/18+1)
             else:
                     return 1
+            return a*mult
     elif gang:
-            fS = (100-sum(history))/7
-            return (fS+1)*7
+            fS = (100-sum(history))/mult
+            return (fS+1)*mult
     else:
-            fP = hp/7
-            answer = fP*7
+            fP = hp/mult
+            answer = fP*mult
+            opp_hp = 100-sum(history)
             if history:
-                    opp_hp = 100-sum(history)
                     if len(history)>1:
                             opp_at_1 = 100-history[0]
                             ratio = 1.0*history[1]/opp_at_1
@@ -373,13 +370,20 @@ def gang_bot(hp,history,ties,alive,start):
                             answer = np.ceil(guessedBet)+1
                     else:
                             if 1.0*hp/opp_hp>1:
-                                    fS = opp_hp/7
-                                    answer = fS*7
-            if answer > hp or alive == 2:
-                    answer = hp-1
-            if answer == 0:
-                    floorSeven = hp/7
-                    answer = floorSeven*7-7
+                                    fS = opp_hp/mult
+                                    answer = fS*mult
+            else:
+                    fS = hp/(2*mult)
+                    answer = fS*mult+mult*2 +np.random.randint(-1,1)*3
+            if answer > hp or alive == 2 or answer < 0:
+                    if alive == 2 and hp<opp_hp:
+                      answer = hp
+                    else:
+                      answer = hp-1
+            if hp > 1.5*opp_hp:
+                    return opp_hp + ties
+            if ties:
+              answer += np.random.randint(2)*3
             return answer
 
 def guess_bot(hp, history, ties, alive, start):
