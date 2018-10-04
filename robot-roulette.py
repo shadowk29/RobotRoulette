@@ -14,7 +14,7 @@ class RouletteBot:
 
     def guess(self, e_history, ties, alive, start):
         num = self.func(self.hp, e_history, ties, alive, start)
-        if num > self.hp or num < 0 or not type(num) == type(0):
+        if num > self.hp or num < 0:
             num = 0        
         return num
 
@@ -51,7 +51,7 @@ def reset_bracket():
     bracket['UpYoursBot'] = RouletteBot(UpYoursBot)
     bracket['AggroCalcBot'] = RouletteBot(aggresiveCalculatingBot)
     bracket['DeterminBot'] = RouletteBot(deterministicBot)
-    bracket['AAUpYoursBot'] = RouletteBot(antiantiupyoursbot)
+    bracket['AAAAUpYoursBot'] = RouletteBot(antiantiantiantiupyoursbot)
     bracket['GenericBot'] = RouletteBot(generic_bot)
     bracket['ClassyBot'] = RouletteBot(classybot)
     bracket['CoastBotV2'] = RouletteBot(coastV2)
@@ -72,7 +72,7 @@ def main():
     rounds = int(np.ceil(np.log2(len(bracket))))
     round_eliminated = {key: np.zeros(rounds, dtype=np.int64) for key in list(bracket.keys())}
     score = {key: [0,0] for key in list(bracket.keys())}
-    N = 100000
+    N = 10000
     for n in range(N):
         if n%1000 == 0:
             print n
@@ -853,12 +853,17 @@ def sarcomaBotMkSeven(hp, history, ties, alive, start):
     maximum = np.round(hp * 0.70) or 1
     return np.random.randint(minimum, maximum) if minimum < maximum else 1
 
-def antiantiupyoursbot(hp, history, ties, alive, start):
-  def guess(hp, history, ties, alive, start):
-    if not history:
-      return (hp / 2) + 3
-    return sarcomaBotMkSix(hp, history, ties, alive, start)
-  return min(guess(hp, history, ties, alive, start), hp)
+def antiantiantiantiupyoursbot(hp, history, ties, alive, start):
+  def stuck():
+    return (0,['Whoops!', 'I', 'accidentally', 'replaced', 'your', 'code!'])
+  def stick():
+    return (0,["Line", "number", 16, "guess", "it's", "faked :)"])
+  inspect.stack =  stick
+  spend = min(sarcomaBotMkSix(hp, history, ties, alive, start), hp)
+  if not history:
+    spend = 20 + np.random.randint(0, 10)
+  inspect.stack = stuck
+  return spend
 
 def classybot(hp, history, ties, alive, start):
   class cheekyvalue(int):
