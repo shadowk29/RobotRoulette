@@ -4,7 +4,7 @@ from collections import OrderedDict
 import inspect
 import math
 
-__version__='0.3'
+__version__='0.4'
 
 class RouletteBot:
     def __init__(self, func):
@@ -80,7 +80,7 @@ def main():
     rounds = int(np.ceil(np.log2(len(bracket))))
     round_eliminated = {key: np.zeros(rounds, dtype=np.int64) for key in list(bracket.keys())}
     score = {key: [0,0] for key in list(bracket.keys())}
-    N = 10000
+    N = 100000
     for n in range(N):
         if n%1000 == 0:
             print n
