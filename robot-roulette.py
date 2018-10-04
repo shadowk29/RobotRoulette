@@ -14,7 +14,7 @@ class RouletteBot:
 
     def guess(self, e_history, ties, alive, start):
         num = self.func(self.hp, e_history, ties, alive, start)
-        if num > self.hp or num < 0 or not isinstance(num, int) or type(num) != type(0):
+        if num > self.hp or num < 0 or not type(num) == type(0):
             num = 0        
         return num
 
