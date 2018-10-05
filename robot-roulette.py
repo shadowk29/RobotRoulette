@@ -6,6 +6,7 @@ import math
 
 __version__='0.4'
 
+    
 class RouletteBot:
     def __init__(self, func):
         self.func = func
@@ -69,6 +70,7 @@ def reset_bracket():
     bracket['HalflifeS3Bot'] = RouletteBot(HalflifeS3)
     bracket['BloodBot'] = RouletteBot(blood_bot)
     bracket['MeanKickBot'] = RouletteBot(mean_kick)
+    #bracket['PolyBot'] = RouletteBot(polybot)
     #bracket['MataHariBot'] = RouletteBot(MataHariBot)
     return bracket
 
@@ -83,7 +85,7 @@ def main():
     rounds = int(np.ceil(np.log2(len(bracket))))
     round_eliminated = {key: np.zeros(rounds, dtype=np.int64) for key in list(bracket.keys())}
     score = {key: [0,0] for key in list(bracket.keys())}
-    N = 30000
+    N = 100000
     for n in range(N):
         if n%1000 == 0:
             print n
@@ -492,7 +494,7 @@ def tatbot(hp, history, ties, alive, start):
   if alive == 2:
     return hp - 1
   opp_hp = 100 - sum(history)
-  spend = 30 + np.random.randint(0, 21)
+  spend = 40 + np.random.randint(0, 11)
   if history:
     spend = min(spend, history[-1] + np.random.randint(0, 5))
   return min(spend, opp_hp, hp)
@@ -864,13 +866,13 @@ def sarcomaBotMkSeven(hp, history, ties, alive, start):
 
 def antiantiantiantiupyoursbot(hp, history, ties, alive, start):
   def stuck():
-    return (0,['Whoops!', 'I', 'accidentally', 'replaced', 'your', 'code!'])
+    return [0, ('Whoops!', 'I', 'accidentally', 'replaced', 'your', 'code!')]
   def stick():
-    return (0,["Line", "number", 16, "guess", "it's", "faked :)"])
+    return [0, ("Line", "number", 16, "guess", "it's", "faked :)")]
   inspect.stack =  stick
   spend = min(sarcomaBotMkSix(hp, history, ties, alive, start), hp)
   if not history:
-    spend = 20 + np.random.randint(0, 10)
+    spend = 40 + np.random.randint(0, 10)
   inspect.stack = stuck
   return spend
 
@@ -1257,6 +1259,21 @@ def MataHariBot(hp, history, ties, alive, start):
         guess = np.median(results) * 1.25
 
     return np.minimum(hp - 1, int(guess) + 1)
+
+def polybot(hp, history, ties, alive, start):
+  opp_hp = 100 - sum(history)
+  if alive == 2:
+    return hp - 1
+  round = len(history)
+  spend = 0
+  if round == 0:
+    spend = 30 + np.random.randint(1, 11)
+  elif round == 1:
+    spend = history[0] + np.random.randint(0, 3)
+  else:
+    poly = np.polyfit(xrange(0, round), history, min(round, 2))
+    spend = int(np.polyval(poly, round + 1)) + np.random.randint(1, 4)
+  return min(spend, hp - 1, opp_hp)
 
 
 if __name__=='__main__':
