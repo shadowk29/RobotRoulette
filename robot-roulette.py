@@ -76,6 +76,7 @@ def reset_bracket():
     bracket['CautiousGamblerBot2'] = RouletteBot(cautious_gambler2)
     bracket['KickbanBot'] = RouletteBot(kickban)
     bracket['AntiKickBot'] = RouletteBot(antiKickBot)
+    bracket['SquareUpBot'] = RouletteBot(squareUp)
     #bracket['MataHariBot'] = RouletteBot(MataHariBot)
     return bracket
 
@@ -111,10 +112,11 @@ def main():
     avg /= len(tscore) * float(N)
     print 'Average Tournament Score: {0:.2g}'.format(avg)
 
-    
-    print 'Name\tScore\tWinRate\tTieRate\tElimination Probability'
+    i = 0
+    print 'Rank\tName\tScore\tWinRate\tTieRate\tElimination Probability'
     for key, val in tscore:
-        print '{0}\t{1:.3f}\t{2:.1f}%\t{3:.1f}%\t{4}%'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)), np.around(round_eliminated[key]/float(N)*100,0).astype(np.int64))
+        i += 1
+        print '{5}. {0}\t{1:.3f}\t{2:.1f}%\t{3:.1f}%\t{4}%'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)), np.around(round_eliminated[key]/float(N)*100,0).astype(np.int64), i)
 
     
 def tournament(bracket):
@@ -1214,7 +1216,6 @@ def MataHariBot(hp, history, ties, alive, start):
     Interrogate our opponent about what they're going to do
     and use that against them
     '''     
-
     if alive <= 3:
         return hp - 1
 
@@ -1232,9 +1233,12 @@ def MataHariBot(hp, history, ties, alive, start):
         if depth == 2:
             target_frame = f
 
-    if depth != 4 or target_frame is None or target_frame.f_code.co_name != 'tournament':
+    if depth != 7 or target_frame is None or target_frame.f_code.co_name != 'tournament':
         if debug:
             print('Skullduggery!')
+            print depth
+            print target_frame
+            print target_frame.f_code.co_name
         return hp - 1
 
     # Find our opponent
@@ -1275,6 +1279,7 @@ def MataHariBot(hp, history, ties, alive, start):
         guess = np.median(results) * 1.25
 
     return np.minimum(hp - 1, int(guess) + 1)
+
 
 def polybot(hp, history, ties, alive, start):
   opp_hp = 100 - sum(history)
@@ -1396,6 +1401,46 @@ def antiKickBot(hp, history, ties, alive, start):
     amount = min(amount, opponentsHP) + ties
     return amount
 
+def squareUp(hp, history, ties, alive, start):
 
+    #Taken from Geometric Bot
+    opponentHP = 100 - sum(history)
+
+    # Need to add case for 1
+    if hp == 1:
+        return 1
+
+    # Last of the last - give it your all
+    if alive == 2:
+        if ties == 2 or opponentHP < hp-1:
+            return hp - 1
+
+    #Calculate your bet (x^(4/5)) with some variance
+    myBet = hp - np.ceil(np.power(hp, 4./5) + np.random.randint(int(-hp * 0.05) or -1, int(hp * 0.05) or 1));
+    if myBet < 1:
+        myBet = 1
+    else:
+        myBet = int(myBet)
+
+    #If total annihilation is a better option, dewit
+    if opponentHP < myBet:
+        if ties == 2:
+            return opponentHP + 1
+        else:
+            return opponentHP
+
+    #If the fraction is proven, then outbid it (Thanks again, Geometric bot)
+    if history:
+        health = 100
+        fraction = float(history[0]) / health
+        for x in history:
+            if float(x) / health != fraction:
+                return myBet
+            health -= x
+        return opponentHP * fraction + 1    
+    else:
+        return myBet
+
+    
 if __name__=='__main__':
     main()
