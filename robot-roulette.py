@@ -77,6 +77,9 @@ def reset_bracket():
     bracket['KickbanBot'] = RouletteBot(kickban)
     bracket['AntiKickBot'] = RouletteBot(antiKickBot)
     bracket['SquareUpBot'] = RouletteBot(squareUp)
+    bracket['SnetchBot'] = RouletteBot(snetchBot)
+    bracket['BoundedRandomBot'] = RouletteBot(boundedRandomBot)
+    bracket['AggressiveBoundedRandomBot'] = RouletteBot(aggressiveBoundedRandomBot)
     #bracket['MataHariBot'] = RouletteBot(MataHariBot)
     return bracket
 
@@ -113,7 +116,7 @@ def main():
     print 'Average Tournament Score: {0:.2g}'.format(avg)
 
     i = 0
-    print 'Rank\tName\tScore\tWinRate\tTieRate\tElimination Probability'
+    print 'Name\tScore\tWinRate\tTieRate\tElimination Probability'
     for key, val in tscore:
         i += 1
         print '{5}. {0}\t{1:.3f}\t{2:.1f}%\t{3:.1f}%\t{4}%'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)), np.around(round_eliminated[key]/float(N)*100,0).astype(np.int64), i)
@@ -312,8 +315,6 @@ def robbie_roulette(hp, history, ties, alive, start):
 def worst_case(hp, history, ties, alive, start):
     return np.minimum(hp - 1, hp - hp /(start - alive + 4) + ties * 2)
 
-def BoundedRandomBot(hp, history, ties, alive, start):
-    return np.ceil(max(np.random.randint(min(hp/3, 0.8*(100-sum(history))), 0.8*(100-sum(history))), hp-1, 1))
 
 
 def spitballBot(hp, history, ties, alive, start):
@@ -1416,9 +1417,13 @@ def squareUp(hp, history, ties, alive, start):
             return hp - 1
 
     #Calculate your bet (x^(4/5)) with some variance
-    myBet = hp - np.ceil(np.power(hp, 4./5) + np.random.randint(int(-hp * 0.05) or -1, int(hp * 0.05) or 1));
+    myBet = np.maximum(hp - np.power(hp, 4./5), np.power(hp, 4./5))
+    myBet += np.random.randint(int(-hp * 0.05) or -1, int(hp * 0.05) or 1);
+    myBet = np.ceil(myBet)
     if myBet < 1:
         myBet = 1
+    elif myBet >= hp:
+        myBet = hp-1
     else:
         myBet = int(myBet)
 
@@ -1430,17 +1435,77 @@ def squareUp(hp, history, ties, alive, start):
             return opponentHP
 
     #If the fraction is proven, then outbid it (Thanks again, Geometric bot)
-    if history:
+    if history and history[0] != history[-1]:
         health = 100
         fraction = float(history[0]) / health
-        for x in history:
-            if float(x) / health != fraction:
+        for i,x in enumerate(history):
+            newFraction = float(x) / health
+            if newFraction + 0.012*i < fraction or newFraction - 0.012*i > fraction:
                 return myBet
             health -= x
-        return opponentHP * fraction + 1    
+        return int(np.ceil(opponentHP * fraction)) + 1    
     else:
         return myBet
 
+def snetchBot(hp, history, ties, alive, start):
+    if alive == 2:
+        return hp-1
+
+    opponent_hp = 100
+    history_fractions = []
+    if history:
+        for i in history:
+            history_fractions.append(float(i)/opponent_hp)
+            opponent_hp -= i
+        if opponent_hp <= hp/2:
+            #print "Squashing a weakling!"
+            return opponent_hp + (ties+1)/3
+
+        average_fraction = float(sum(history_fractions)) / len(history_fractions)
+        if history_fractions[-1] < average_fraction:
+            #print "Opponent not raising, go with average fraction"
+            next_fraction = average_fraction
+        else:
+            #print "Opponent raising!"
+            next_fraction = 2*history_fractions[-1] - average_fraction
+        bet = np.ceil(opponent_hp*next_fraction) + 1
+    else:
+        #print "First turn, randomish"
+        bet = np.random.randint(35,55)
+
+    if bet > opponent_hp:
+        bet = opponent_hp + (ties+1)/3
+    final_result = bet + 3*ties
+    if bet >= hp:
+        #print "Too much to bet"
+        bet = hp-1
+    return final_result
+
+def boundedRandomBot(hp, history, ties, alive, start):
+    max_possible_bid = hp - 1
+    if alive == 2 or max_possible_bid == 0:
+        return max_possible_bid
     
+    if history:
+        opp_hp = 100 - sum(history)
+        bid_ceiling = min(opp_hp+1, max_possible_bid)
+    else:
+        bid_ceiling = max_possible_bid
+    return np.random.randint(1, bid_ceiling+1)
+
+def aggressiveBoundedRandomBot(hp, history, ties, alive, start):
+    max_possible_bid = hp - 1
+    if alive == 2 or max_possible_bid == 0:
+        return max_possible_bid
+
+    if history:
+        opp_hp = 100 - sum(history)
+    else:        
+        opp_hp = 100
+    bid_ceiling = min(opp_hp+1, max_possible_bid)
+    bid_floor = min(np.ceil(opp_hp * 0.5), bid_ceiling)
+    return np.random.randint(bid_floor, bid_ceiling+1)
+
+
 if __name__=='__main__':
     main()
