@@ -4,7 +4,7 @@ from collections import OrderedDict
 import inspect
 import math
 
-__version__='0.4'
+__version__='1.0'
 
     
 class RouletteBot:
@@ -46,9 +46,9 @@ def reset_bracket():
     bracket['TitTatBot'] = RouletteBot(tatbot)
     bracket['SpreaderBot'] = RouletteBot(Spreader)
     bracket['KickBot'] = RouletteBot(kick)
-    bracket['SarcomaBotMk8'] = RouletteBot(sarcomaBotMkEight)
-    bracket['SarcomaBotMk7'] = RouletteBot(sarcomaBotMkSeven)
-    bracket['SarcomaBotMk9'] = RouletteBot(sarcomaBotMkNine)
+    bracket['SarcomaBotMk10-0'] = RouletteBot(sarcoma_bot_mk_ten)
+    bracket['SarcomaBotMk10-1'] = RouletteBot(sarcoma_bot_mk_ten)
+    bracket['SarcomaBotMk10-2'] = RouletteBot(sarcoma_bot_mk_ten)
     bracket['TENaciousBot'] = RouletteBot(TENacious_bot)
     bracket['SurvivalistBot'] = RouletteBot(SurvivalistBot)
     bracket['HalvsiestBot'] = RouletteBot(HalvsiesBot)
@@ -72,6 +72,9 @@ def reset_bracket():
     bracket['MeanKickBot'] = RouletteBot(mean_kick)
     bracket['PolyBot'] = RouletteBot(polybot)
     bracket['ThreeQuarterBot'] = RouletteBot(ThreeQuarterBot)
+    bracket['FourSeventhsBot'] = RouletteBot(FourSeventhsBot)
+    bracket['CautiousGamblerBot2'] = RouletteBot(cautious_gambler2)
+    bracket['KickbanBot'] = RouletteBot(kickban)
     #bracket['MataHariBot'] = RouletteBot(MataHariBot)
     return bracket
 
@@ -972,7 +975,7 @@ def cautious_gambler(hp, history, ties, alive, start):
         remaining_rounds = np.ceil(np.log2(start)) - len(history)
 
         start_bet = opp_hp / 2
-        buff = int((hp - start_bet)/remaining_rounds if remaining_rounds > 0 else (hp - start_bet))
+        buff = int((hp - start_bet)/remaining_rounds if remaining_rounds > 0 else (hp - start_bet)) 
         buff_bet = np.random.randint(0, buff) if buff > 0 else 0
         bet = start_bet + buff_bet + ties
 
@@ -1266,12 +1269,12 @@ def polybot(hp, history, ties, alive, start):
   spend = 0
   if round == 0:
     spend = 35 + np.random.randint(1, 11)
-  elif round == 1:
-    spend = history[0] + np.random.randint(0, 3)
+  elif round <= 2:
+    spend = history[-1] + np.random.randint(5 * round - 4, 10 * round - 5)
   else:
-    poly = np.polyfit(xrange(0, round), history, min(round - 1, 2))
+    poly = np.polyfit(xrange(0, round), history, 2)
     spend = int(np.polyval(poly, round)) + np.random.randint(1, 4)
-  return min(spend, hp - 1, opp_hp)
+  return min(spend, hp - 1, opp_hp) 
 
 
 def ThreeQuarterBot(hp, history, ties, alive, start):
@@ -1289,6 +1292,87 @@ def ThreeQuarterBot(hp, history, ties, alive, start):
         return opponent_hp + ties
 
     return threeQuarters
+
+
+def sarcoma_bot_mk_ten(hp, history, ties, alive, start):
+    def bid_between(low, high, hp, tie_breaker):
+        minimum = np.round(hp * low)
+        maximum = np.round(hp * high) or 1
+        return np.random.randint(minimum, maximum) + tie_breaker if minimum < maximum else 1
+
+    if alive == 2:
+        return hp - 1 + ties
+    current_round = len(history) + 1
+    tie_breaker = (ties * ties) + 1 if ties else ties
+    if current_round == 1:
+        return 39 + tie_breaker
+    opponent_hp = 100 - sum(history)
+    if opponent_hp < hp * 0.50:
+        return opponent_hp + ties
+    if current_round == 2:
+        return bid_between(0.45, 0.50, hp, tie_breaker)
+    if current_round == 3:
+        return bid_between(0.50, 0.55, hp, tie_breaker)
+    if current_round == 4:
+        return bid_between(0.55, 0.60, hp, tie_breaker)
+    if current_round == 5:
+        bid_between(0.60, 0.65, hp, tie_breaker)
+    return hp - 1 + ties
+
+
+def cautious_gambler2(hp, history, ties, alive, start):
+    if alive == 2:
+        return hp - 1
+    if(history):
+        opp_hp = 100 - sum(history)
+        remaining_rounds = np.ceil(np.log2(start)) - len(history)
+
+        start_bet = opp_hp / 2
+        buff = int((hp - start_bet)/remaining_rounds if remaining_rounds > 0 else (hp - start_bet)) 
+        buff_bet = np.random.randint(0, buff) if buff > 0 else 0
+        bet = start_bet + buff_bet + ties
+
+        if bet >= hp or bet > opp_hp:
+            bet = np.minimum(hp - 1, opp_hp)
+
+        return int(bet)
+    else:
+        start_bet = hp * 0.35
+        rng_bet = np.random.randint(3,6)
+
+        return int(start_bet + rng_bet + ties)
+
+
+def FourSeventhsBot(hp, history, ties, alive, start):
+    fourSevenths = 4 * hp / 7
+
+    if alive == 2:
+        return hp - 1
+
+    opponent_hp = 100 - sum(history)
+
+    if not history:
+        # low-ball the first round but higher than (some) other low-ballers
+        return 33 + ties
+    if fourSevenths > opponent_hp:
+        return opponent_hp + ties
+
+    return fourSevenths + ties
+
+def kickban(hp, history, ties, alive, start):
+    if alive == 2:
+        return hp-1
+
+    if not history:
+        return 36
+
+    if history[0]==35:
+        somean = 1
+    else:
+        somean = 0
+
+    return min(mean_kick(hp, history, ties, alive, start) + somean*3, hp-1)
+
 
 if __name__=='__main__':
     main()
