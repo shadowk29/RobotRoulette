@@ -70,7 +70,8 @@ def reset_bracket():
     bracket['HalflifeS3Bot'] = RouletteBot(HalflifeS3)
     bracket['BloodBot'] = RouletteBot(blood_bot)
     bracket['MeanKickBot'] = RouletteBot(mean_kick)
-    #bracket['PolyBot'] = RouletteBot(polybot)
+    bracket['PolyBot'] = RouletteBot(polybot)
+    bracket['ThreeQuarterBot'] = RouletteBot(ThreeQuarterBot)
     #bracket['MataHariBot'] = RouletteBot(MataHariBot)
     return bracket
 
@@ -434,14 +435,8 @@ def guess_bot(hp, history, ties, alive, start):
    if len(history) == 1:
        if history[0] == 99:
            return 2
-       elif hp > enemy_hp:
-           if enemy_hp < 20:
-               return enemy_hp
-           else:
-               return ((2*enemy_hp)/3) + (ties*2)
-       elif hp < enemy_hp:
-           #trying to kill and survive to the next round
-           return ((2*hp)/3)
+       else:
+           return 26 + ties*2
 
    elif len(history) > 1:
        next_bet_guess = sum(history)//(len(history)**2)
@@ -449,13 +444,13 @@ def guess_bot(hp, history, ties, alive, start):
            return hp
        elif alive > 2: 
            if hp > next_bet_guess + 1:
-               return (next_bet_guess + 1)
+               return (next_bet_guess + 1 + ties*2)
            else:
                return (hp - 1)
 
    else:
        #Thank you Sarcoma bot. See you in Valhalla.
-       startBid = hp / 2
+       startBid = hp / 3
        maxAdditionalBid = np.round(hp * 0.06) if hp * 0.06 > 3 else 3
        additionalBid = np.random.randint(2, maxAdditionalBid)
        return int(startBid + additionalBid + ties)
@@ -1178,7 +1173,10 @@ def blood_bot(hp, history, ties, alive, start):
             return hp - 1 + ties
 
     else:
-        return (20 + ties*3)
+        startBid = hp / 3
+        maxAdditionalBid = np.round(hp * 0.06) if hp * 0.06 > 3 else 3
+        additionalBid = np.random.randint(2, maxAdditionalBid)
+        return int(startBid + additionalBid + ties)
 
 def mean_kick(hp, history, ties, alive, start):
     if alive == 2:
@@ -1267,14 +1265,30 @@ def polybot(hp, history, ties, alive, start):
   round = len(history)
   spend = 0
   if round == 0:
-    spend = 30 + np.random.randint(1, 11)
+    spend = 35 + np.random.randint(1, 11)
   elif round == 1:
     spend = history[0] + np.random.randint(0, 3)
   else:
-    poly = np.polyfit(xrange(0, round), history, min(round, 2))
-    spend = int(np.polyval(poly, round + 1)) + np.random.randint(1, 4)
+    poly = np.polyfit(xrange(0, round), history, min(round - 1, 2))
+    spend = int(np.polyval(poly, round)) + np.random.randint(1, 4)
   return min(spend, hp - 1, opp_hp)
 
+
+def ThreeQuarterBot(hp, history, ties, alive, start):
+    threeQuarters = 3 * hp / 4
+
+    if alive == 2:
+        return hp - 1
+
+    opponent_hp = 100 - sum(history)
+
+    if not history:
+        # low-ball the first round but higher than (some) other low-ballers
+        return 32 + ties
+    elif threeQuarters > opponent_hp:
+        return opponent_hp + ties
+
+    return threeQuarters
 
 if __name__=='__main__':
     main()
