@@ -67,6 +67,9 @@ def reset_bracket():
     bracket['CautiousBot'] = RouletteBot(cautious_gambler)
     bracket['PercentBot'] = RouletteBot(percent)
     bracket['HalflifeS3Bot'] = RouletteBot(HalflifeS3)
+    bracket['BloodBot'] = RouletteBot(blood_bot)
+    bracket['MeanKickBot'] = RouletteBot(mean_kick)
+    #bracket['MataHariBot'] = RouletteBot(MataHariBot)
     return bracket
 
 def tournament_score(score):
@@ -80,7 +83,7 @@ def main():
     rounds = int(np.ceil(np.log2(len(bracket))))
     round_eliminated = {key: np.zeros(rounds, dtype=np.int64) for key in list(bracket.keys())}
     score = {key: [0,0] for key in list(bracket.keys())}
-    N = 100000
+    N = 30000
     for n in range(N):
         if n%1000 == 0:
             print n
@@ -425,17 +428,23 @@ def gang_bot(hp,history,ties,alive,start):
             return answer
 
 def guess_bot(hp, history, ties, alive, start):
+   enemy_hp = 100 - sum(history)
    if len(history) == 1:
        if history[0] == 99:
            return 2
-       if hp > ((history[0]/2) + 1):
-           return ((history[0]/2) + 1)
-       else:
-           return ((hp/2) +2 )
+       elif hp > enemy_hp:
+           if enemy_hp < 20:
+               return enemy_hp
+           else:
+               return ((2*enemy_hp)/3) + (ties*2)
+       elif hp < enemy_hp:
+           #trying to kill and survive to the next round
+           return ((2*hp)/3)
+
    elif len(history) > 1:
        next_bet_guess = sum(history)//(len(history)**2)
        if alive == 2: 
-           return hp - 1
+           return hp
        elif alive > 2: 
            if hp > next_bet_guess + 1:
                return (next_bet_guess + 1)
@@ -443,9 +452,11 @@ def guess_bot(hp, history, ties, alive, start):
                return (hp - 1)
 
    else:
-       #Trying to beat the half betters, won't beat the big guys
-       #that bet by 2/3s hp
-       return ((hp/2) + 1)
+       #Thank you Sarcoma bot. See you in Valhalla.
+       startBid = hp / 2
+       maxAdditionalBid = np.round(hp * 0.06) if hp * 0.06 > 3 else 3
+       additionalBid = np.random.randint(2, maxAdditionalBid)
+       return int(startBid + additionalBid + ties)
 
 def calculatingBot(hp, history, ties, alive, start):
     opponentsHP = 100 - sum(history)
@@ -985,7 +996,7 @@ def meh_bot(hp, history, ties, alive, start):
     point = hp / 2 + 3
 
     if ties > 1:
-        ties + 1
+        ties += 1
 
     # Go all out on last round
     if alive == 2:
@@ -997,7 +1008,7 @@ def meh_bot(hp, history, ties, alive, start):
         return 1
     elif not history:
         # Start with 30, This will increase the chance of dying first round but hopefully better fighting chance after
-        return 30
+        return 30 + ties
     elif point > opponent_hp:
         # Never use more points then needed to win
         return opponent_hp + ties
@@ -1085,7 +1096,7 @@ def meh_ran(hp, history, ties, alive, start):
     # Attempt three    MehBot         | 0.095 | 9.1 %   | 0.7 %   | [70  3  5  6  6  0]%
     point = hp / 2 + 3
     if ties > 1:
-        ties + 1
+        ties += 1
     # Go all out on last round
     if alive == 2:
         return hp - 1
@@ -1093,8 +1104,8 @@ def meh_ran(hp, history, ties, alive, start):
     if hp < 3:
         return 1
     elif not history:
-        # Start with 30, This will increase the chance of dying first round but hopefully better fighting chance after
-        return random.randint(20, 50)
+        # randome number between 33
+        return random.randint(33, 45) 
     elif point > opponent_hp:
         # Never use more points then needed to win
         return opponent_hp + ties
@@ -1109,7 +1120,7 @@ def meh_bot20(hp, history, ties, alive, start):
     point = hp / 2 + 2
 
     if ties > 1:
-        ties + 1
+        ties += 1
 
     # Go all out on last round
     if alive == 2:
@@ -1120,8 +1131,8 @@ def meh_bot20(hp, history, ties, alive, start):
     if hp < 3:
         return 1
     elif not history:
-        # Start with 20, This will increase the chance of dying first round but hopefully better fighting chance after
-        return 20
+        # Start with 35, This will increase the chance of dying first round but hopefully better fighting chance after
+        return 35 + ties
     elif point > opponent_hp:
         # Never use more points then needed to win
         return opponent_hp + ties
@@ -1138,6 +1149,115 @@ def HalflifeS3(hp, history, ties, alive, start):
     else:
         return hp/3
 
-    
+def blood_bot(hp, history, ties, alive, start):
+    enemy_hp = 100 - sum(history)
+    if history:
+        if len(history) == 1:
+            if history[0] == 99:
+                return 2
+
+        if alive == 2:
+            return hp
+
+        if enemy_hp <= 5:
+            return enemy_hp - 2 + ties*2
+
+        if enemy_hp <= 10:
+            return enemy_hp - 5 + ties*2
+
+        if (hp - enemy_hp) > 50:
+            return (2*enemy_hp/3 + ties*4)
+
+        if (hp - enemy_hp) > 20:
+            return (2*enemy_hp/3 + ties*3)
+
+        if (hp - enemy_hp) < 0:
+            #die gracefully
+            return hp - 1 + ties
+
+    else:
+        return (20 + ties*3)
+
+def mean_kick(hp, history, ties, alive, start):
+    if alive == 2:
+        return hp-1
+
+    if not history:
+        return 35
+
+    opp_hp = 100 - sum(history)
+    if opp_hp*2 <= hp:
+        return opp_hp + ties
+    else:
+        return min(round(opp_hp/2) + 3 + ties*2, hp-1 + (ties>0))
+
+def MataHariBot(hp, history, ties, alive, start):
+    ''' 
+    Interrogate our opponent about what they're going to do
+    and use that against them
+    '''     
+
+    if alive <= 3:
+        return hp - 1
+
+    debug = False
+
+    # Hello antiantiantiantiupyoursbot and your inspect.stack modification
+    f = inspect.currentframe()
+    target_frame = None
+    depth = 0
+    while True:
+        f = f.f_back
+        if f is None:
+            break
+        depth = depth + 1
+        if depth == 2:
+            target_frame = f
+
+    if depth != 4 or target_frame is None or target_frame.f_code.co_name != 'tournament':
+        if debug:
+            print('Skullduggery!')
+        return hp - 1
+
+    # Find our opponent
+    opponent = None
+    us = None
+    for key, value in target_frame.f_locals.iteritems():
+        if not isinstance(value, RouletteBot):
+            continue
+        if value.func.__code__.co_name == inspect.currentframe().f_code.co_name:
+            us = value
+        else:
+            opponent = value
+
+    if us is None or opponent is None:
+        if debug:
+            print('Falsity!')
+        return hp - 1
+
+    results = [ ]
+    for i in range(random.randint(100, 151)):
+        result = opponent.func(opponent.hp, us.history, ties, alive, start)
+        # pathetic_attempt_at_analytics_bot sometimes returns None, though
+        # I couldn't figure out why with a quick glance at its code.
+        if result is None:
+            result = 0
+            if debug:
+                print("%s returned None" % (opponent.__code__.co_name))
+        results.append(result)
+
+    # If we have a deterministic result, use that
+    if np.allclose(results, results[0]):
+        guess = results[0]
+    # If we have a small range of guesses, use the maximum
+    elif np.max(results) - np.min(results) <= hp / 3:
+        guess = np.max(results)
+    # Otherwise, we're dealing with a wide range of guesses and can just hope
+    else:
+        guess = np.median(results) * 1.25
+
+    return np.minimum(hp - 1, int(guess) + 1)
+
+
 if __name__=='__main__':
     main()
