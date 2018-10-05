@@ -75,6 +75,7 @@ def reset_bracket():
     bracket['FourSeventhsBot'] = RouletteBot(FourSeventhsBot)
     bracket['CautiousGamblerBot2'] = RouletteBot(cautious_gambler2)
     bracket['KickbanBot'] = RouletteBot(kickban)
+    bracket['AntiKickBot'] = RouletteBot(antiKickBot)
     #bracket['MataHariBot'] = RouletteBot(MataHariBot)
     return bracket
 
@@ -1372,6 +1373,14 @@ def kickban(hp, history, ties, alive, start):
         somean = 0
 
     return min(mean_kick(hp, history, ties, alive, start) + somean*3, hp-1)
+
+def antiKickBot(hp, history, ties, alive, start):
+    if alive == 2:
+        return (hp - 1 + ties)
+    amount = np.ceil((float(hp) / 2) + 1.5)
+    opponentsHP = 100 - sum(history)
+    amount = min(amount, opponentsHP) + ties
+    return amount
 
 
 if __name__=='__main__':
