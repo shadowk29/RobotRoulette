@@ -1095,6 +1095,7 @@ def meh_ran(hp, history, ties, alive, start):
     # Attempt one      MehBot         | 0.020 | 1.6%    | 0.8%    | [34 36 12 10  6  1]%
     # Attempt two      MehBot         | 0.106 | 10.1%   | 0.8%    | [60  6  7  8  8  2]%
     # Attempt three    MehBot         | 0.095 | 9.1 %   | 0.7 %   | [70  3  5  6  6  0]%
+
     point = hp / 2 + 3
     if ties > 1:
         ties += 1
@@ -1106,7 +1107,7 @@ def meh_ran(hp, history, ties, alive, start):
         return 1
     elif not history:
         # randome number between 33
-        return random.randint(33, 45) 
+        return random.randint(33, 45)
     elif point > opponent_hp:
         # Never use more points then needed to win
         return opponent_hp + ties
@@ -1118,22 +1119,35 @@ def meh_ran(hp, history, ties, alive, start):
 def meh_bot20(hp, history, ties, alive, start):
     # Attempt one      MehBot         | 0.020 | 1.6%    | 0.8%    | [34 36 12 10  6  1]%
     # Attempt two      MehBot         | 0.106 | 10.1%   | 0.8%    | [60  6  7  8  8  2]%
-    point = hp / 2 + 2
+    point = hp / 2 + 3
+    opponent_hp = 100 - sum(history)
+
+    percents = []
+    for i in range(0, len(history)):
+        hp_that_round = 100 - sum(history[:i])
+        hp_spent_that_round = history[i]
+        percent_spent_that_round = 100.0 * (float(hp_spent_that_round) / float(hp_that_round))
+        percents.append(percent_spent_that_round)
+
+    try:
+        opp_percent_point = opponent_hp * (max(percents) / 100)
+    except:
+        opp_percent_point = 100
 
     if ties > 1:
         ties += 1
-
     # Go all out on last round
     if alive == 2:
         return hp - 1
 
-    opponent_hp = 100 - sum(history)
-
     if hp < 3:
         return 1
     elif not history:
-        # Start with 35, This will increase the chance of dying first round but hopefully better fighting chance after
-        return 35 + ties
+        # randome number between 33
+        return random.randint(33, 45)
+    elif len(history) > 3:
+        if point > opponent_hp:
+            return min(opponent_hp + ties, opp_percent_point + ties)
     elif point > opponent_hp:
         # Never use more points then needed to win
         return opponent_hp + ties
