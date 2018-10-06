@@ -48,6 +48,7 @@ def reset_bracket():
     bracket['SpreaderBot'] = RouletteBot(Spreader)
     bracket['KickBot'] = RouletteBot(kick)
     bracket['SarcomaBotMk11'] = RouletteBot(sarcoma_bot_mk_eleven)
+    bracket['SarcomaBotMk3'] = RouletteBot(sarcomaBotMkThree)
     bracket['TENaciousBot'] = RouletteBot(TENacious_bot)
     bracket['SurvivalistBot'] = RouletteBot(SurvivalistBot)
     bracket['HalvsiestBot'] = RouletteBot(HalvsiesBot)
@@ -99,9 +100,9 @@ def main():
     rounds = int(np.ceil(np.log2(len(bracket))))
     round_eliminated = {key: np.zeros(rounds, dtype=np.int64) for key in list(bracket.keys())}
     score = {key: [0,0] for key in list(bracket.keys())}
-    N = 10000
+    N = 1000000
     for n in range(N):
-        if n%100 == 0:
+        if n%1000 == 0:
             print n
         winner, tied, eliminated = tournament(bracket)
         if not tied:
@@ -845,7 +846,26 @@ def sarcomaBotMkFour(hp, history, ties, alive, start):
     maximum = np.round(hp * 0.80) or 1
     return np.random.randint(minimum, maximum) if minimum < maximum else 1
 
+def sarcomaBotMkThree(hp, history, ties, alive, start):
+    if inspect.stack()[1][3] != 'guess' and inspect.stack()[1] == 5:
+        return hp
+    if alive == 2:
+        return hp - 1
+    if not history:
+        startBid = hp / 2
+        maxAdditionalBid = np.round(hp * 0.08) if hp * 0.08 > 2 else 2
+        additionalBid = np.random.randint(1, maxAdditionalBid)
+        return int(startBid + additionalBid + ties)
+    opponentHealth = 100 - sum(history)
+    if opponentHealth < hp:
+        return opponentHealth + ties
+    minimum = np.round(hp * 0.6)
+    maximum = hp - 1 or 1
+    return np.random.randint(minimum, maximum) if minimum < maximum else 1
+
+
 def sarcomaBotMkSix(hp, history, ties, alive, start):
+    return hp; # hack averted
     def isSafe(parentCall):
         frame, filename, line_number, function_name, lines, index = parentCall
         if function_name is not 'guess':
