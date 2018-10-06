@@ -47,9 +47,7 @@ def reset_bracket():
     bracket['TitTatBot'] = RouletteBot(tatbot)
     bracket['SpreaderBot'] = RouletteBot(Spreader)
     bracket['KickBot'] = RouletteBot(kick)
-    bracket['SarcomaBotMk10-0'] = RouletteBot(sarcoma_bot_mk_ten)
-    bracket['SarcomaBotMk10-1'] = RouletteBot(sarcoma_bot_mk_ten)
-    bracket['SarcomaBotMk10-2'] = RouletteBot(sarcoma_bot_mk_ten)
+    bracket['SarcomaBotMk11'] = RouletteBot(sarcoma_bot_mk_eleven)
     bracket['TENaciousBot'] = RouletteBot(TENacious_bot)
     bracket['SurvivalistBot'] = RouletteBot(SurvivalistBot)
     bracket['HalvsiestBot'] = RouletteBot(HalvsiesBot)
@@ -1729,6 +1727,31 @@ def wise_kick(hp, history, ties, alive, start):
     else:
         return min(round(opp_hp/2) + 3 + ties*2, hp-1 + (ties>0))
 
-    
+def sarcoma_bot_mk_eleven(hp, history, ties, alive, start):
+    def bid_between(low, high, hp, tie_breaker):
+        minimum = np.round(hp * low)
+        maximum = np.round(hp * high) or 1
+        return np.random.randint(minimum, maximum) + tie_breaker if minimum < maximum else 1
+
+    if alive == 2:
+        return hp - 1 + ties
+    current_round = len(history) + 1
+    tie_breaker = ties + 2 if ties else ties
+    if current_round == 1:
+        return 42 + tie_breaker
+    opponent_hp = 100 - sum(history)
+    if opponent_hp < hp * 0.50:
+        return opponent_hp + ties
+    if current_round == 2:
+        return bid_between(0.45, 0.50, hp, tie_breaker)
+    if current_round == 3:
+        return bid_between(0.50, 0.55, hp, tie_breaker)
+    if current_round == 4:
+        return bid_between(0.55, 0.60, hp, tie_breaker)
+    if current_round == 5:
+        return bid_between(0.60, 0.65, hp, tie_breaker)
+    return hp - 1 + ties
+
+
 if __name__=='__main__':
     main()
