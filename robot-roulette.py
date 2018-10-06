@@ -3,6 +3,7 @@ import random
 from collections import OrderedDict
 import inspect
 import math
+import types
 
 __version__='1.0'
 
@@ -79,8 +80,8 @@ def reset_bracket():
     bracket['SquareUpBot'] = RouletteBot(squareUp)
     bracket['SnetchBot'] = RouletteBot(snetchBot)
     bracket['BoundedRandomBot'] = RouletteBot(boundedRandomBot)
-    bracket['AggressiveBoundedRandomBot'] = RouletteBot(aggressiveBoundedRandomBot)
-    #bracket['MataHariBot'] = RouletteBot(MataHariBot)
+    bracket['AggressiveBoundedRandomBotV2'] = RouletteBot(aggressiveBoundedRandomBotV2)
+    bracket['OgBot'] = RouletteBot(ogbot)
     return bracket
 
 def tournament_score(score):
@@ -94,7 +95,7 @@ def main():
     rounds = int(np.ceil(np.log2(len(bracket))))
     round_eliminated = {key: np.zeros(rounds, dtype=np.int64) for key in list(bracket.keys())}
     score = {key: [0,0] for key in list(bracket.keys())}
-    N = 100000
+    N = 10000
     for n in range(N):
         if n%1000 == 0:
             print n
@@ -294,11 +295,20 @@ def pathetic_attempt_at_analytics_bot(hp, history, ties, alive, start):
             n = hp - 1
         return n
 
-def halfpunch(hp, history, ties, alive, start):
-    if hp > 1:
-        return np.ceil(hp/2)
+def halfpunch(hp, history, ties, alive, start): #revisited
+    punch = hp - 1
+    if alive == 2:
+        return punch
+    if history:
+        if hp > 1:
+            punch = np.ceil(hp/2.05) + ties + np.floor(ties / 2)
+        else:
+            punch = 1
     else:
-        return 1
+        punch = 42 + ties + np.floor(ties / 2)
+    if punch >= hp:
+        punch = hp - 1
+    return punch
 
 def robbie_roulette(hp, history, ties, alive, start):
      if history:
@@ -1212,74 +1222,43 @@ def mean_kick(hp, history, ties, alive, start):
     else:
         return min(round(opp_hp/2) + 3 + ties*2, hp-1 + (ties>0))
 
-def MataHariBot(hp, history, ties, alive, start):
-    ''' 
-    Interrogate our opponent about what they're going to do
-    and use that against them
-    '''     
-    if alive <= 3:
-        return hp - 1
+def ogbot(hp, history, ties, alive, start):
+    otherBots = functions = [f for f in globals().values() if type(f) == types.FunctionType]
 
-    debug = False
+    def whatWouldOthetbotDo(bot,hp,history,ties,alive,start):
+        botname = bot.__name__
+        # got to avoid self referencing
+        if(botname)=='ogbot':
+            return -999
 
-    # Hello antiantiantiantiupyoursbot and your inspect.stack modification
-    f = inspect.currentframe()
-    target_frame = None
-    depth = 0
-    while True:
-        f = f.f_back
-        if f is None:
-            break
-        depth = depth + 1
-        if depth == 2:
-            target_frame = f
+        # avoid non bot functions 
+        try:
+            return bot(hp,history,ties,alive,start)
+        except (TypeError, NameError, RuntimeError):
+            return -999
 
-    if depth != 7 or target_frame is None or target_frame.f_code.co_name != 'tournament':
-        if debug:
-            print('Skullduggery!')
-            print depth
-            print target_frame
-            print target_frame.f_code.co_name
-        return hp - 1
+    otherBotCurrentBids = []
 
-    # Find our opponent
-    opponent = None
-    us = None
-    for key, value in target_frame.f_locals.iteritems():
-        if not isinstance(value, RouletteBot):
-            continue
-        if value.func.__code__.co_name == inspect.currentframe().f_code.co_name:
-            us = value
-        else:
-            opponent = value
+    otherBotOpeningBids = []    
 
-    if us is None or opponent is None:
-        if debug:
-            print('Falsity!')
-        return hp - 1
+    for bot in otherBots:
+        otherBotCurrentBids.append(whatWouldOthetbotDo(bot,hp,history,ties,alive,start))
+        otherBotOpeningBids.append(whatWouldOthetbotDo(bot,100,[],0,start,start))
 
-    results = [ ]
-    for i in range(random.randint(100, 151)):
-        result = opponent.func(opponent.hp, us.history, ties, alive, start)
-        # pathetic_attempt_at_analytics_bot sometimes returns None, though
-        # I couldn't figure out why with a quick glance at its code.
-        if result is None:
-            result = 0
-            if debug:
-                print("%s returned None" % (opponent.__code__.co_name))
-        results.append(result)
+    # remove invalid outputs
+    otherBotCurrentBids = filter(lambda a: a != -999, otherBotCurrentBids)
+    otherBotOpeningBids = filter(lambda a: a != -999, otherBotOpeningBids)
 
-    # If we have a deterministic result, use that
-    if np.allclose(results, results[0]):
-        guess = results[0]
-    # If we have a small range of guesses, use the maximum
-    elif np.max(results) - np.min(results) <= hp / 3:
-        guess = np.max(results)
-    # Otherwise, we're dealing with a wide range of guesses and can just hope
-    else:
-        guess = np.median(results) * 1.25
+    # if this is the second round or later, try to deal with bots who were likely to pass the first round
+    if len(history)>ties:
+        medianOpening = np.median(otherBotOpeningBids)
+        # get the bots who probably passed the first round and aren't committing suicide
+        likelySuccessBots = [(a,b) for a,b in zip(otherBotCurrentBids, otherBotOpeningBids) if (b>medianOpening) & (a<hp)]      
+        otherBotCurrentBids = [a for a,b in likelySuccessBots]
 
-    return np.minimum(hp - 1, int(guess) + 1)
+
+    out = min(np.median(otherBotCurrentBids) + 1,hp-1)
+    return out
 
 
 def polybot(hp, history, ties, alive, start):
@@ -1493,7 +1472,7 @@ def boundedRandomBot(hp, history, ties, alive, start):
         bid_ceiling = max_possible_bid
     return np.random.randint(1, bid_ceiling+1)
 
-def aggressiveBoundedRandomBot(hp, history, ties, alive, start):
+def aggressiveBoundedRandomBotV2(hp, history, ties, alive, start):
     max_possible_bid = hp - 1
     if alive == 2 or max_possible_bid == 0:
         return max_possible_bid
@@ -1502,9 +1481,9 @@ def aggressiveBoundedRandomBot(hp, history, ties, alive, start):
         opp_hp = 100 - sum(history)
     else:        
         opp_hp = 100
-    bid_ceiling = min(opp_hp+1, max_possible_bid)
-    bid_floor = min(np.ceil(opp_hp * 0.5), bid_ceiling)
-    return np.random.randint(bid_floor, bid_ceiling+1)
+
+    bid_floor = min(np.ceil(opp_hp * 0.5), max_possible_bid)
+    return np.random.randint(bid_floor, max_possible_bid+1)
 
 
 if __name__=='__main__':
