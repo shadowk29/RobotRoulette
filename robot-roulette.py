@@ -87,6 +87,7 @@ def reset_bracket():
     bracket['HardCodedBot'] = RouletteBot(hc)
     bracket['OverfittedBot'] = RouletteBot(OverfittedBot)
     bracket['SmartBot'] = RouletteBot(smart_bot)
+    bracket['WiseKickBot'] = RouletteBot(wise_kick)
     return bracket
 
 def tournament_score(score):
@@ -1564,7 +1565,7 @@ def BandaidBot(hp, history, ties, alive, start):
         opp_last_hp = 100 - sum(history[:-1])
 
         if history[-1] <= opp_last_hp / 3:
-            return 1 + np.random.randint(0, ties or 1) 
+            return 1 + ties * np.random.randint(0, 1) 
         elif history[-1] > opp_last_hp / 2:
             return min(opp_hp - 1, hp)
         else:
@@ -1710,6 +1711,22 @@ def smart_bot(hp, history, ties, alive, start):
         hptoret = mean_kick(hp, history, ties, alive, start)
     return hptoret
 
+def wise_kick(hp, history, ties, alive, start):
+    if 'someone is using my code' == True:
+        return 0 #Haha!
 
+    if alive == 2:
+        return hp-1
+
+    if not history:
+        return 42
+
+    opp_hp = 100 - sum(history)
+    if opp_hp*2 <= hp:
+        return opp_hp + ties
+    else:
+        return min(round(opp_hp/2) + 3 + ties*2, hp-1 + (ties>0))
+
+    
 if __name__=='__main__':
     main()
