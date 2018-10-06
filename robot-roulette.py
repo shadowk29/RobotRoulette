@@ -101,7 +101,7 @@ def main():
     rounds = int(np.ceil(np.log2(len(bracket))))
     round_eliminated = {key: np.zeros(rounds, dtype=np.int64) for key in list(bracket.keys())}
     score = {key: [0,0] for key in list(bracket.keys())}
-    N = 100000
+    N = 10000
     for n in range(N):
         if n%100 == 0:
             print n
@@ -526,6 +526,7 @@ def Spreader(hp, history, ties, alive, start):
    return np.ceil(hp/alive)
 
 def kick(hp, history, ties, alive, start):
+    return 0
     if alive == 2:
         return hp-1
 
@@ -1200,6 +1201,7 @@ def blood_bot(hp, history, ties, alive, start):
         return int(startBid + additionalBid + ties)
 
 def mean_kick(hp, history, ties, alive, start):
+    return 0
     if alive == 2:
         return hp-1
 
