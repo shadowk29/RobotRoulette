@@ -82,6 +82,8 @@ def reset_bracket():
     bracket['BoundedRandomBot'] = RouletteBot(boundedRandomBot)
     bracket['AggressiveBoundedRandomBotV2'] = RouletteBot(aggressiveBoundedRandomBotV2)
     bracket['OgBot'] = RouletteBot(ogbot)
+    #bracket['BandaidBot'] = RouletteBot(BandaidBot)
+    bracket['GetAlongBot'] = RouletteBot(GetAlongBot)
     return bracket
 
 def tournament_score(score):
@@ -95,7 +97,7 @@ def main():
     rounds = int(np.ceil(np.log2(len(bracket))))
     round_eliminated = {key: np.zeros(rounds, dtype=np.int64) for key in list(bracket.keys())}
     score = {key: [0,0] for key in list(bracket.keys())}
-    N = 10000
+    N = 100000
     for n in range(N):
         if n%1000 == 0:
             print n
@@ -120,7 +122,7 @@ def main():
     print 'Name\tScore\tWinRate\tTieRate\tElimination Probability'
     for key, val in tscore:
         i += 1
-        print '{5}. {0}\t{1:.3f}\t{2:.1f}%\t{3:.1f}%\t{4}%'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)), np.around(round_eliminated[key]/float(N)*100,0).astype(np.int64), i)
+        print '{5}. {0}\t{1:.5f}\t{2:.2f}%\t{3:.2f}%\t{4}%'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)), np.around(round_eliminated[key]/float(N)*100,0).astype(np.int64), i)
 
     
 def tournament(bracket):
@@ -1485,6 +1487,42 @@ def aggressiveBoundedRandomBotV2(hp, history, ties, alive, start):
     bid_floor = min(np.ceil(opp_hp * 0.5), max_possible_bid)
     return np.random.randint(bid_floor, max_possible_bid+1)
 
+##def BandaidBot(hp, history, ties, alive, start):
+##    if alive == 2:
+##        return hp-1
+##
+##    if history:
+##        opp_hp = 100 - sum(history)
+##        opp_last_hp = 100 - sum(history[:-1])
+##
+##        if history[-1] <= opp_last_hp / 3:
+##            return 1 + np.random.randint(0, ties or 1) 
+##        elif history[-1] > opp_last_hp / 2:
+##            return min(opp_hp - 1, hp)
+##        else:
+##            return np.random.randint(history[-1], hp/2)
+##    else:
+##        return np.floor(hp/3)
 
+def GetAlongBot(hp, history, ties, alive, start):
+    if alive == 2:
+        return hp-1
+
+    if history:
+        opp_hp = 100 - sum(history)
+        opp_last_hp = 100 - sum(history[:-1])
+        count = 0
+        for i in range(0, len(history)):
+            hp_that_round = 100 - sum(history[:i])
+            hp_spent_that_round = history[i]
+            if hp_that_round / 3 - 1 <= hp_spent_that_round <= hp_that_round / 2:
+                count += 1
+        if count == len(history): #It's probably BandaidBot!
+            return 2
+        else:
+            return min(opp_hp - 1, np.floor(hp/3))
+    else:
+        return np.floor(hp/3)
+    
 if __name__=='__main__':
     main()
