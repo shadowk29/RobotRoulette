@@ -85,6 +85,8 @@ def reset_bracket():
     bracket['GetAlongBot'] = RouletteBot(GetAlongBot)
     bracket['StrikerBot'] = RouletteBot(strikerbot)
     bracket['HardCodedBot'] = RouletteBot(hc)
+    bracket['OverfittedBot'] = RouletteBot(OverfittedBot)
+    bracket['SmartBot'] = RouletteBot(smart_bot)
     return bracket
 
 def tournament_score(score):
@@ -1667,6 +1669,46 @@ def ThePerfectFraction(hp, history, ties, alive, start):
         return opponent_hp + ties
 
     return thePerfectFraction + 1 + ties
+
+def smart_bot(hp, history, ties, alive, start):
+    op_high_bid = 0
+    op_hp = 100
+    hptoret = 1
+    his = False
+    tienum = (ties * ties) + 1 if ties else ties
+    if not history:
+        return 42 + tienum
+        #return obots(hp, history, ties, alive, start)
+    if his:
+        if history[0]==36:
+            return min(mean_kick(hp, history, ties, alive, start) + 3, hp-1)
+
+    if alive == 2:
+        if history[0]==36:
+            return max(mean_kick(hp, history, ties, alive, start) + 3, hp-1)
+        return hp - 1
+    if history:
+        his = True
+
+    if his:
+        for h in history:
+            if int(h) > op_high_bid:
+                op_high_bid = h
+    if his:
+        op_hp = 100 - sum(history)
+        if op_hp >= hp:
+            return np.floor(hp / 3)
+
+
+    roundn = len(history) + 1
+    #if roundn > 6:
+        #return hp - 1
+    """Overrideable(If above did not execute of course)"""
+
+    if op_hp < hp:
+        """Kick em hard"""
+        hptoret = mean_kick(hp, history, ties, alive, start)
+    return hptoret
 
 
 if __name__=='__main__':
