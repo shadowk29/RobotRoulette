@@ -9,25 +9,32 @@ __version__='1.0'
 
     
 class RouletteBot:
+    ''' Implements a simple  class to keep track of the properties of bots'''
     def __init__(self, func):
-        self.func = func
+        self.func = func #we need to use a wtrapper function to validate the output from user-submitted functions to avoid cheaters, so we make it callable via the RouletteBot class
         self.hp = 100
         self.history = []
 
     def guess(self, e_history, ties, alive, start):
+        '''We call the functions people submit without some
+        validation, so this is a wrapepr for user-submitted
+        functions which makes sure their bids are legitimate'''
         num = self.func(self.hp, e_history, ties, alive, start)
-        try:
+        try: #one of the bots was returning None, which throws a TypeError when cast to int. This catches that problem.
             num = int(num)
         except TypeError:
             num = 0
-            
-        if num > self.hp or num < 0 or not type(num) == type(0):
+        if num > self.hp or num < 0 or not type(num) == type(0): #the type check was because someone sub-classed int to always fail inquality checks
             num = 0        
         return num
 
 def reset_bracket():
+    '''Initializes the tournament with a full dictionary of all the bots that are competing
+    technically it isn't really necessary to redefine them all from scratch every time -
+    you could keep a full list and just reset hp and history for each member. But
+    performance is not really a concern here.'''
     bracket = {}
-    bracket['AverageBot'] = RouletteBot(average)
+    bracket['AverageBot'] = RouletteBot(average) #each bot is assigned a bid function to go with it when you create it
     bracket['LastBot'] = RouletteBot(last)
     bracket['RandomBot'] = RouletteBot(randombot)
     bracket['OneShotBot'] = RouletteBot(one_shot)
@@ -90,98 +97,67 @@ def reset_bracket():
     return bracket
 
 def tournament_score(score):
+    '''Calculate the score for the tournament, given 1 point per win adn 0.5 per tie'''
     tscore = dict()
     for key in score.keys():
         tscore[key] = score[key][0] + 0.5*score[key][1]
     return sorted(tscore.items(), key=lambda x:x[1], reverse=True)
-       
-def main():
-    bracket = reset_bracket()
-    rounds = int(np.ceil(np.log2(len(bracket))))
-    round_eliminated = {key: np.zeros(rounds, dtype=np.int64) for key in list(bracket.keys())}
-    score = {key: [0,0] for key in list(bracket.keys())}
-    N = 1000000
-    for n in range(N):
-        if n%1000 == 0:
-            print n
-        winner, tied, eliminated = tournament(bracket)
-        if not tied:
-            score[winner][0] += 1
-        else:
-            score[winner[0]][1] += 1
-            score[winner[1]][1] += 1
-        for key in list(eliminated.keys()):
-            round_eliminated[key][eliminated[key]] += 1
-        bracket = reset_bracket()
-    tscore = tournament_score(score)
 
-    avg = 0
-    for val in tscore:
-        avg += val[1]
-    avg /= len(tscore) * float(N)
-    print 'Average Tournament Score: {0:.2g}'.format(avg)
 
-    i = 0
-    print 'Name\tScore\tWinRate\tTieRate\tElimination Probability'
-    for key, val in tscore:
-        i += 1
-        print '{5}. {0}\t{1:.5f}\t{2:.2f}%\t{3:.2f}%\t{4}%'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)), np.around(round_eliminated[key]/float(N)*100,0).astype(np.int64), i)
-
-    
 def tournament(bracket):
-    unused = bracket
-    eliminated = {}
-    used = {}
-    start = len(unused)
-    roundnum = 0
-    while len(unused) + len(used) > 1:
-        alive = len(unused) + len(used)
+    '''Controller for a single tournement'''
+    unused = bracket #we keep two lists - unused and used. Unused is the bots that have not yet competed in the round.
+    eliminated = {} #keeps track of the round in whcih each bot is eliminated. Will share a key with bracket
+    used = {} #used is the list of survivors of the current round
+    start = len(unused) #how many bots there are to begin with
+    roundnum = 0 #starting with round 0 because 0-indexing is better
+    while len(unused) + len(used) > 1: #as long as there are 2 or more bots left, we keep fighting
+        alive = len(unused) + len(used) #to keep track of what to feed the inputs to the bots
         #print 'Contestants remaining: {0}'.format(len(unused) + len(used))
-        if len(unused) == 1:
-            index = list(unused.keys())[0]
-            used[index] = unused[index]
-            unused = used
-            used = {}
-            roundnum += 1
-        elif len(unused) == 0:
-            unused = used
-            used = {}
-            roundnum += 1
-        else:
-            
-            redindex = np.random.choice(list(unused.keys()))
-            blueindex = np.random.choice(list(unused.keys()))
+        if len(unused) == 1: #if there is a single bot left in the unused part of the bracket at any point, he gets a free ride to the next round
+            index = list(unused.keys())[0] #this gets the name of the remainig unused bot who gets a free ride
+            used[index] = unused[index] #put him in the used pool without fighting. Lucky bot
+            unused = used #turn the used list into the unused list for the next round
+            used = {} #nobody is used, now
+            roundnum += 1 #next round!
+        elif len(unused) == 0: #if nobody was unused, it means that everyone had a fight. 
+            unused = used #all we do now is set the unused list for next round to the used list from the previous round
+            used = {} #and reset the used list to be empty
+            roundnum += 1 #next round
+        else: #if there are still bots left to fight
+            redindex = np.random.choice(list(unused.keys())) #pick a bot at random
+            blueindex = np.random.choice(list(unused.keys())) #pick a second bot at random
             while blueindex == redindex:
-                blueindex = np.random.choice(list(unused.keys()))
+                blueindex = np.random.choice(list(unused.keys())) #make sure it's a different second random bot
 
             
-            red = unused[redindex]
+            red = unused[redindex] #pick out the bot object from the bracket of contenders
             blue = unused[blueindex]
             #print '{0}/{2} vs {1}/{3}'.format(redindex, blueindex, red.hp, blue.hp)
             ties = 0
-            rednum = red.guess(blue.history, ties, alive, start)
+            rednum = red.guess(blue.history, ties, alive, start) #get a guess from each bot
             bluenum = blue.guess(red.history, ties, alive, start)
             #print 'Red: {0}/{2} vs Blue: {1}/{3}'.format(rednum, bluenum, red.hp, blue.hp)
-            while rednum == bluenum:
+            while rednum == bluenum: #make sure its a different bet, and keep track of the number of times they were tied
                 #print 'Red: {0} vs Blue: {1}'.format(rednum, bluenum, red.hp, blue.hp)
                 ties += 1
                 if ties == 3:
-                    break
-                rednum = red.guess(blue.history, ties, alive, start)
+                    break #go directly to dead, do not pass go
+                rednum = red.guess(blue.history, ties, alive, start) #keep guessing until they die, or until they pick different numbers
                 bluenum = blue.guess(red.history, ties, alive, start)
-            if rednum > bluenum:
+            if rednum > bluenum: # whcih bot bid higher?
                 #print 'Blue dies!'
-                del unused[blueindex]
-                eliminated[blueindex] = roundnum
-                red.hp -= rednum
-                red.history.append(rednum)
-                if red.hp > 0:
-                    used[redindex] = red
-                    del unused[redindex]
-                else:
-                    del unused[redindex]
-                    eliminated[redindex] = roundnum
-            elif bluenum > rednum:
+                del unused[blueindex] #delete the loser from the bracket entirely
+                eliminated[blueindex] = roundnum #note when he died
+                red.hp -= rednum #remove hp from the winner
+                red.history.append(rednum) #note his bid
+                if red.hp > 0: #make sure he's still alive
+                    used[redindex] = red #if the winner lives, move him to the used list for possibly more fighting next round
+                    del unused[redindex] #remove him from the unused list so he doesn't fight twice in the same round
+                else: #if his bid was enough to kill him, do so
+                    del unused[redindex] #remove him from the bracket entirely
+                    eliminated[redindex] = roundnum #note when it happened
+            elif bluenum > rednum: #this block is the same as above, but with the positions reversed
                 #print 'Red dies!'
                 del unused[redindex]
                 eliminated[redindex] = roundnum
@@ -195,18 +171,52 @@ def tournament(bracket):
                     eliminated[blueindex] = roundnum
             else: #if you're still tied at this point, both die
                 #print 'Both die!'
-                del unused[redindex]
+                del unused[redindex] #if they both tied 3 times, they both die
                 del unused[blueindex]
                 eliminated[redindex] = roundnum
                 eliminated[blueindex] = roundnum
-    if unused:
-        return list(unused.keys())[0], False, eliminated
-    elif used:
-        return list(used.keys())[0], False, eliminated
+    if unused: #there's only one bot left, and he happens to be in the unused dict
+        return list(unused.keys())[0], False, eliminated #return the name of the winner, a note that there was no tie overall, and a dict containing the round in which each bot was eliminated
+    elif used:#there's only one bot left, and he happens to be in the used dict
+        return list(used.keys())[0], False, eliminated #return the name of the winner, a note that there was no tie overall, and a dict containing the round in which each bot was eliminated
     else:
-        return [redindex, blueindex], True, eliminated
-        
-                
+        return [redindex, blueindex], True, eliminated #return the name of the winners, a note that there was a tie overall, and a dict containing the round in which each bot was eliminated
+
+    
+def main():
+    '''The main controller function, which initializes and runs the tournaments, and scores them at the end'''
+    bracket = reset_bracket() #initialize the competing bots
+    rounds = int(np.ceil(np.log2(len(bracket)))) #calculate the expected number of rounds, assuming about half of bots die each round.
+    round_eliminated = {key: np.zeros(rounds, dtype=np.int64) for key in list(bracket.keys())} #initializes a dict (shares a key with bracket) of lists to keep track of the round in which each bot was eliminated
+    score = {key: [0,0] for key in list(bracket.keys())} #initializes a dict (shares a key with bracket) of lists to keep track of wins and ties for each bot
+    N = 100000 #the number of competitions to run
+    for n in range(N):
+        if n%1000 == 0: #simple "progress bar"
+            print n
+        winner, tied, eliminated = tournament(bracket) #run a single tournament and get the winner(s)
+        if not tied: #score the tournament results
+            score[winner][0] += 1
+        else:
+            score[winner[0]][1] += 1
+            score[winner[1]][1] += 1
+        for key in list(eliminated.keys()):
+            round_eliminated[key][eliminated[key]] += 1
+        bracket = reset_bracket() #reset the bots back to the original bracket before th enext run
+    tscore = tournament_score(score)
+
+    #print the standings
+    i = 0
+    print 'Name\tScore\tWinRate\tTieRate\tElimination Probability'
+    for key, val in tscore:
+        i += 1
+        print '{5}. {0}\t{1:.5f}\t{2:.2f}%\t{3:.2f}%\t{4}%'.format(key, val/float(N), 100*(score[key][0]/float(N)), 100*(score[key][1]/float(N)), np.around(round_eliminated[key]/float(N)*100,0).astype(np.int64), i)
+
+    
+
+
+
+    
+################ BOT FUNCTIONS ###################                
 def last(hp, history, ties, alive, start):
     if history:
         return 1 + np.minimum(hp-1, history[-1])
